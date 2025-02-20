@@ -1,12 +1,15 @@
 // src/App.jsx
 import React from 'react';
 import { AuthProvider } from './context/AuthContext';
+import { SavedActivitiesProvider } from './context/SavedActivitiesContext';
 import MainLayout from './components/layout/MainLayout';
 
 const App = () => {
   return (
     <AuthProvider>
-      <MainLayout />
+      <SavedActivitiesProvider>
+        <MainLayout />
+      </SavedActivitiesProvider>
     </AuthProvider>
   );
 };

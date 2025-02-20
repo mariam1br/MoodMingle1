@@ -6,15 +6,17 @@ import ActivityGrid from '../components/activities/ActivityGrid';
 
 const DiscoverPage = () => {
   return (
-    <>
-      <section className="bg-white rounded-xl shadow-sm p-6 mb-8">
-        <div className="flex flex-col space-y-4">
-          <SearchBar />
-          <InterestTags />
-        </div>
-      </section>
+    <div className="container mx-auto px-4 py-6">
+      <div className="max-w-2xl mx-auto"> 
+        <section className="bg-white rounded-xl shadow-sm p-6 mb-8">
+          <div className="flex flex-col space-y-4">
+            <SearchBar />
+            <InterestTags />
+          </div>
+        </section>
+      </div>
       <ActivityGrid />
-    </>
+    </div>
   );
 };
 

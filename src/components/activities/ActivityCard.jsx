@@ -1,9 +1,20 @@
 // src/components/activities/ActivityCard.jsx
 import React from 'react';
 import { MapPin, Sun, Heart } from 'lucide-react';
+import { useSavedActivities } from '../../context/SavedActivitiesContext';
 
 const ActivityCard = ({ activity }) => {
   const { title, category, location, weather, description } = activity;
+  const { saveActivity, removeActivity, isActivitySaved } = useSavedActivities();
+  const isSaved = isActivitySaved(title);
+
+  const handleSaveToggle = () => {
+    if (isSaved) {
+      removeActivity(title);
+    } else {
+      saveActivity(activity);
+    }
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-sm overflow-hidden">
@@ -13,8 +24,16 @@ const ActivityCard = ({ activity }) => {
             <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
             <p className="text-sm text-gray-500">{category}</p>
           </div>
-          <button className="text-gray-400 hover:text-red-500">
-            <Heart size={20} />
+          <button 
+            onClick={handleSaveToggle}
+            className={`text-gray-400 hover:text-red-500 transition-colors ${
+              isSaved ? 'text-red-500' : ''
+            }`}
+          >
+            <Heart 
+              size={20} 
+              fill={isSaved ? "currentColor" : "none"}
+            />
           </button>
         </div>
         <div className="mt-4 space-y-2">

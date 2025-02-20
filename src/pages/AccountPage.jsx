@@ -1,11 +1,14 @@
 // src/pages/AccountPage.jsx
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useSavedActivities } from '../context/SavedActivitiesContext';
 import { User, Heart, Settings, LogOut } from 'lucide-react';
-import AccountSettings from '../components/account/AccountSettings'; // Add this import
+import AccountSettings from '../components/account/AccountSettings';
+import ActivityCard from '../components/activities/ActivityCard';
 
 const AccountPage = () => {
   const { user, logout } = useAuth();
+  const { savedActivities } = useSavedActivities();
   const [activeTab, setActiveTab] = useState('profile');
 
   const ProfileSection = () => (
@@ -30,7 +33,7 @@ const AccountPage = () => {
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm">
           <h3 className="font-medium mb-2">Interests</h3>
-          <p className="text-gray-600">5 Active Interests</p>
+          <p className="text-gray-600">{savedActivities.length} Saved Activities</p>
         </div>
       </div>
     </div>
@@ -40,9 +43,19 @@ const AccountPage = () => {
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Saved Activities</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow-sm">
-          <p className="text-gray-500">No saved activities yet</p>
-        </div>
+        {savedActivities.length > 0 ? (
+          savedActivities.map((activity, index) => (
+            <ActivityCard key={index} activity={activity} />
+          ))
+        ) : (
+          <div className="col-span-full bg-white p-8 rounded-lg shadow-sm text-center">
+            <Heart size={40} className="mx-auto text-gray-400 mb-4" />
+            <p className="text-gray-500 text-lg mb-2">No saved activities yet</p>
+            <p className="text-gray-400">
+              Activities you save will appear here. Click the heart icon on any activity to save it for later.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -73,7 +86,11 @@ const AccountPage = () => {
               }`}
             >
               <Heart className="mr-2" size={20} />
-              Saved Activities
+              Saved Activities {savedActivities.length > 0 && (
+                <span className="ml-2 bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full text-xs">
+                  {savedActivities.length}
+                </span>
+              )}
             </button>
             <button
               onClick={() => setActiveTab('settings')}
@@ -100,7 +117,7 @@ const AccountPage = () => {
         <div className="border-t border-gray-200 p-6">
           <button
             onClick={logout}
-            className="flex items-center text-red-600 hover:text-red-700"
+            className="flex items-center text-red-600 hover:text-red-700 transition-colors"
           >
             <LogOut size={20} className="mr-2" />
             Sign Out
