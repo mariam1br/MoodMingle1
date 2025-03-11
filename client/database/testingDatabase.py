@@ -31,8 +31,8 @@ print("Users in Toronto:", toronto_users)
 print("\n--- Test Case 4: Insert a Preference ---")
 db_queries.insert_into_table(
     table_name="Preferences",
-    columns=["userID", "category", "keyword"],
-    values=(6, "Movies", "Thriller")
+    columns=["userID", "keyword"],
+    values=(6, "Thriller")
 )
 
 # Test Case 5: Retrieve preferences for a specific user
