@@ -6,9 +6,10 @@ from dotenv import load_dotenv
 
 app = Flask(__name__)
 CORS(app)
+load_dotenv()
 
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-WEATHER_API_KEY = os.getenc("WEATHER_API_KEY")
+WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
 
 # Global variables to store the latest weather data
 latest_location = None
