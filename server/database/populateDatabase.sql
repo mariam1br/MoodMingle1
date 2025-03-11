@@ -8,14 +8,14 @@ INSERT INTO Users (username, email, passwordHash, location) VALUES
 ('daveX', 'dave@example.com', 'hashed_password_4', 'Houston'),
 ('emma_writes', 'emma@example.com', 'hashed_password_5', 'San Francisco');
 
-INSERT INTO Preferences (userID, category, keyword) VALUES
-(1, 'Movies', 'Sci-Fi'),
-(1, 'Sports', 'Basketball'),
-(2, 'Creative', 'Painting'),
-(3, 'Movies', 'Horror'),
-(3, 'Sports', 'Soccer'),
-(4, 'Music', 'Rock'),
-(5, 'Travel', 'Hiking');
+INSERT INTO Preferences (userID, keyword) VALUES
+(1, 'Sci-Fi'),
+(1, 'Basketball'),
+(2, 'Painting'),
+(3, 'Horror'),
+(3, 'Soccer'),
+(4, 'Rock'),
+(5, 'Hiking');
 
 
 INSERT INTO Activities (name, category, description, location, weatherDependency, suitableWeather) VALUES

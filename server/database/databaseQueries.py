@@ -29,3 +29,18 @@ class DatabaseQueries:
             print(f"Error fetching data from {table_name}: {e}")
             return None
 
+    # functions for the LLM
+    def returnInterestsForUser(self, userName):
+        query = """
+        SELECT Preferences.keyword 
+        FROM Preferences 
+        JOIN Users ON Preferences.userID = Users.userID 
+        WHERE Users.username = %s
+        """
+        try:
+            self.cursor.execute(query, (userName,))
+            keywords = [row[0] for row in self.cursor.fetchall()]
+            return keywords
+        except mysql.connector.Error as e:
+            print(f"Error fetching preferences for user {userName}: {e}")
+            return None

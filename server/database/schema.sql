@@ -15,7 +15,6 @@ CREATE TABLE Users (
 CREATE TABLE Preferences (
     preferenceID SERIAL PRIMARY KEY,
     userID INT REFERENCES Users(userID) ON DELETE CASCADE,
-    category VARCHAR(50) NOT NULL, -- e.g., "Movies", "Sports", "Creative"
     keyword VARCHAR(100) NOT NULL -- e.g., "Horror", "Sci-Fi", "Yoga"
 );
 
