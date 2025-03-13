@@ -1,6 +1,6 @@
 # COMMIT
 from flask import Flask, request, jsonify
-import requests
+from flask_cors import CORS
 import os
 from dotenv import load_dotenv
 from google import genai
@@ -8,6 +8,7 @@ from google import genai
 load_dotenv()
 
 app = Flask(__name__)
+CORS(app, origins=["https://myfrontend.netlify.app"])
 
 GEMINI_API_KEY = os.getenv("LLM_API_KEY")
 
@@ -21,10 +22,8 @@ def create_prompt(interests, location, weather):
         f"Include a mix of indoor and outdoor options, and highlight any local events. "
         f"Respond strictly in JSON format with the following structure:\n\n"
         f"{{\n"
-        f'  "outdoor_activities": [\n    {{"name": "Activity Name", "description": "Brief Description"}}\n  ],\n'
-        f'  "indoor_activities": [\n    {{"name": "Activity Name", "description": "Brief Description"}}\n  ],\n'
+        f'  "outdoor__indoor_activities": [\n    {{"name": "Activity Name", "description": "Brief Description"}}\n  ],\n'
         f'  "local_events": [\n    {{"name": "Event Name", "description": "Brief Description"}}\n  ],\n'
-        f'  "combined_activities": [\n    {{"combination": "Activity Combo", "description": "How they complement each other"}}\n  ],\n'
         f'  "considerations": [\n    "Important tips or things to keep in mind"\n  ]\n'
         f"}}\n\n"
         f"Ensure the JSON response is properly formatted and contains only the requested data without any additional text."
