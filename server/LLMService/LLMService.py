@@ -1,6 +1,6 @@
 # COMMIT
 from flask import Flask, request, jsonify
-import requests
+from flask_cors import CORS
 import os
 from dotenv import load_dotenv
 from google import genai
@@ -8,6 +8,7 @@ from google import genai
 load_dotenv()
 
 app = Flask(__name__)
+CORS(app, origins=["https://myfrontend.netlify.app"])
 
 GEMINI_API_KEY = os.getenv("LLM_API_KEY")
 
