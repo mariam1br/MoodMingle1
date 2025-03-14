@@ -2,6 +2,8 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
+import json
+import re
 from dotenv import load_dotenv
 from google import genai
 
@@ -19,7 +21,7 @@ def create_prompt(interests, location, weather):
     return (
         f"Suggest engaging activities for someone who enjoys {', '.join(interests)}. "
         f"They are located in {location} and the current weather is {weather}. "
-        f"Include a mix of indoor and outdoor options, and highlight any local events. "
+        f"Include a mix of indoor and outdoor options, and highlight any local events. For the local events make sure to provide dates. "
         f"Respond strictly in JSON format with the following structure:\n\n"
         f"{{\n"
         f'  "outdoor_indoor_activities": [\n    {{"name": "Activity Name", "description": "Brief Description"}}\n  ],\n'
@@ -36,9 +38,21 @@ def query_gemini(prompt):
             model="gemini-2.0-flash",
             contents=prompt
         )
-        return response.text if response.text else "No suggestions found."
+
+        raw_text = response.candidates[0].content.parts[0].text
+
+        # Strip triple backticks and "json" label if present
+        clean_json_text = re.sub(r"```json\n|\n```", "", raw_text)
+
+        # Parse the cleaned JSON
+        return json.loads(clean_json_text)
+
+    except json.JSONDecodeError as e:
+        return {"error": f"Failed to parse Gemini response as JSON: {str(e)}"}
+    
     except Exception as e:
-        return f"Error querying Gemini: {str(e)}"
+        return {"error": f"Error querying Gemini: {str(e)}"}
+
 
 # API Endpoint to Get Recommendations from Gemini
 @app.route("/api/get-recommendations", methods=["POST"])
