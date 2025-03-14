@@ -7,6 +7,7 @@ const AuthContext = createContext(null);
 const dummyUsers = [
   {
     id: "user1",
+    username: "testuser",
     email: "user@example.com",
     password: "password123",
     displayName: "Test User",
@@ -16,6 +17,7 @@ const dummyUsers = [
   },
   {
     id: "mariam",
+    username: "mariam",
     email: "mariam@example.com",
     password: "password12",
     displayName: "Mariam Ibrahim",
@@ -42,7 +44,8 @@ export const AuthProvider = ({ children }) => {
   const login = (credentials) => {
     // Find user by email
     const foundUser = dummyUsers.find(u => 
-      u.email === credentials.email && u.password === credentials.password
+      (u.email === credentials.email || u.username === credentials.username) && 
+      u.password === credentials.password
     );
     
     if (foundUser) {
@@ -58,7 +61,7 @@ export const AuthProvider = ({ children }) => {
       
       return { success: true, user: safeUserData };
     } else {
-      return { success: false, error: "Invalid email or password" };
+      return { success: false, error: "Invalid username/email or password" };
     }
   };
 

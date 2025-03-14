@@ -10,9 +10,10 @@ const SignInPage = () => {
   const navigate = useNavigate();
   
   const [formData, setFormData] = useState({
-    email: '',
+    emailOrUsername: '',
     password: '',
-    displayName: ''
+    displayName: '',
+    username: ''
   });
   
   const [error, setError] = useState('');
@@ -33,7 +34,14 @@ const SignInPage = () => {
     
     if (isSignIn) {
       // Sign In logic
-      const result = login(formData);
+      const loginData = {
+        // Support login with either email or username
+        email: formData.emailOrUsername,
+        username: formData.emailOrUsername,
+        password: formData.password
+      };
+      
+      const result = login(loginData);
       
       if (result.success) {
         navigate('/');
@@ -44,7 +52,7 @@ const SignInPage = () => {
       // Sign Up logic - in a real app, you would register the user
       // For now, just show available test accounts
       setError(`This is a demo. Please use one of the test accounts: 
-                ${dummyUsers.map(u => u.email).join(' or ')}`);
+                ${dummyUsers.map(u => `${u.username} / ${u.password}`).join(' or ')}`);
     }
     
     setIsLoading(false);
@@ -63,7 +71,8 @@ const SignInPage = () => {
           <ul className="list-disc pl-5">
             {dummyUsers.map(user => (
               <li key={user.id}>
-                {user.email} / {user.password}
+                Username: <strong>{user.username}</strong> or Email: <strong>{user.email}</strong> 
+                <br />Password: <strong>{user.password}</strong>
               </li>
             ))}
           </ul>
@@ -112,35 +121,53 @@ const SignInPage = () => {
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isSignIn && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Full Name
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-2.5 text-gray-400" size={20} />
-                  <input
-                    type="text"
-                    name="displayName"
-                    value={formData.displayName}
-                    onChange={handleChange}
-                    placeholder="Enter your name"
-                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Full Name
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-2.5 text-gray-400" size={20} />
+                    <input
+                      type="text"
+                      name="displayName"
+                      value={formData.displayName}
+                      onChange={handleChange}
+                      placeholder="Enter your name"
+                      className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
                 </div>
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Username
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-2.5 text-gray-400" size={20} />
+                    <input
+                      type="text"
+                      name="username"
+                      value={formData.username}
+                      onChange={handleChange}
+                      placeholder="Choose a username"
+                      className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+                </div>
+              </>
             )}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email Address
+                {isSignIn ? "Email or Username" : "Email Address"}
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-2.5 text-gray-400" size={20} />
                 <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
+                  type={isSignIn ? "text" : "email"}
+                  name="emailOrUsername"
+                  value={formData.emailOrUsername}
                   onChange={handleChange}
-                  placeholder="Enter your email"
+                  placeholder={isSignIn ? "Enter email or username" : "Enter your email"}
                   className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
