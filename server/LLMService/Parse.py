@@ -7,24 +7,29 @@ prompt = LLMService.create_prompt(interests, location, weather)
 recommendations = LLMService.query_gemini(prompt)
 
 # Extracting data
-outdoor_indoor = recommendations.get("outdoor_indoor_activities", [])
+outdoor = recommendations.get("outdoor_activities", [])
+indoor = recommendations.get("indoor_activities", [])
 local_events = recommendations.get("local_events", [])
 considerations = recommendations.get("considerations", [])
 
 # Display data cleanly
 print("\n🎯 **Recommended Activities:**\n")
-if outdoor_indoor:
-    for activity in outdoor_indoor:
-        print(activity['name'])
-        print(activity['description'])
+if outdoor:
+    for activity in outdoor:
+        print(activity)
+else:
+    print("No activities found.")
+
+if indoor:
+    for activity in indoor:
+        print(activity)
 else:
     print("No activities found.")
 
 print("\n🎉 **Local Events:**\n")
 if local_events:
     for event in local_events:
-        print(event['name'])
-        print(event['description'])
+        print(event)
 else:
     print("No local events found.")
 
