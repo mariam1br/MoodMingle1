@@ -21,7 +21,6 @@ CREATE TABLE Preferences (
 CREATE TABLE Activities (
     activityID SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    category VARCHAR(50) NOT NULL, -- e.g., "Movies", "Sports", "Local Event"
     description TEXT,
     location VARCHAR(255), -- Optional, only used for local events/places
     weatherDependency BOOLEAN DEFAULT FALSE,
@@ -31,13 +30,9 @@ CREATE TABLE Activities (
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE LocalEvents (
-    eventID INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    location VARCHAR(100), -- City or specific address
-    description TEXT,
-    tags TEXT -- JSON or comma-separated tags for search
-);
+
+
+
 
 CREATE TABLE Weather (
     weatherID SERIAL PRIMARY KEY,
@@ -75,8 +70,6 @@ CREATE TABLE APILogs (
     responsePayload TEXT, -- JSON data for the response
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
-
 
 
 

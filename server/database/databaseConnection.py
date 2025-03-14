@@ -32,6 +32,13 @@ class DatabaseConnection:
             print("Database connection closed.")
 
 
-# db = DatabaseConnection(dbname='MoodMingle', user='your_user', password='your_password')
-# db.connect()
+db = DatabaseConnection(
+    dbname='MoodMingle',
+    user='moodmingle_user',
+    password='team2',
+    host='104.198.30.234',
+    port=3306
+)
+
+db.connect()
 # db.disconnect()
