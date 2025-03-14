@@ -1,9 +1,16 @@
 // src/components/search/InterestTags.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 
-const InterestTags = ({ onGenerateActivities }) => {
+const InterestTags = ({ onGenerateActivities, initialInterests = [] }) => {
   const [interests, setInterests] = useState([]);
   const [previousInterests, setPreviousInterests] = useState([]);
+
+  // Set initial interests when they change (e.g., user logs in)
+  useEffect(() => {
+    if (initialInterests && initialInterests.length > 0) {
+      setInterests(initialInterests);
+    }
+  }, [initialInterests]);
 
   // Define addInterest using useCallback before using it in useEffect
   const addInterest = useCallback((interest) => {

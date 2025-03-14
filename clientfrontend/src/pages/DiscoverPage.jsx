@@ -1,30 +1,43 @@
 // src/pages/DiscoverPage.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import SearchBar from '../components/search/SearchBar';
 import InterestTags from '../components/search/InterestTags';
 import ActivityGrid from '../components/activities/ActivityGrid';
 import ActivityCard from '../components/activities/ActivityCard';
+import { useAuth } from '../context/AuthContext';
 
 const DiscoverPage = () => {
+  const { user, updateUserInterests } = useAuth();
   const [activities, setActivities] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [generatedInterests, setGeneratedInterests] = useState([]);
+  const [userInterests, setUserInterests] = useState([]);
+
+  // Load user interests if logged in
+  useEffect(() => {
+    if (user && user.interests) {
+      setUserInterests(user.interests);
+    }
+  }, [user]);
 
   const handleGenerateActivities = async (selectedInterests) => {
     setIsLoading(true);
     setGeneratedInterests(selectedInterests);
     
-    // Here you would normally make an API call to your backend
-    // which would then call the LLM to generate activities
-    // For now we'll simulate it with a timeout
+    // If logged in, save the interests to user profile
+    if (user) {
+      // Update both local state and context
+      setUserInterests(selectedInterests);
+      updateUserInterests(selectedInterests);
+    }
     
     try {
-      // Simulating API call delay
+      // In a real application, you would make an API call here
+      // For now, we'll simulate with a timeout
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // For demo purposes, let's generate some mock activities based on the interests
+      // Generate mock activities based on selected interests
       const mockActivities = selectedInterests.flatMap(interest => {
-        // Generate 1-2 activities per interest
         return [
           {
             title: `${interest} Workshop`,
@@ -46,7 +59,6 @@ const DiscoverPage = () => {
       setActivities(mockActivities);
     } catch (error) {
       console.error('Error generating activities:', error);
-      // You might want to show an error message to the user
     } finally {
       setIsLoading(false);
     }
@@ -58,12 +70,25 @@ const DiscoverPage = () => {
         <section className="bg-white rounded-xl shadow-sm p-6 mb-8">
           <div className="flex flex-col space-y-4">
             <SearchBar onAddInterest={(interest) => {
-              // This will be passed to InterestTags
               document.dispatchEvent(new CustomEvent('addInterest', { detail: interest }));
             }} />
-            <InterestTags onGenerateActivities={handleGenerateActivities} />
+            <InterestTags 
+              onGenerateActivities={handleGenerateActivities} 
+              initialInterests={userInterests}
+            />
           </div>
         </section>
+        
+        {user && (
+          <div className="bg-purple-50 rounded-xl p-4 mb-8">
+            <p className="text-purple-600">
+              Welcome back, <strong>{user.displayName}</strong>! 
+              {userInterests.length > 0 
+                ? ` Your saved interests: ${userInterests.join(', ')}`
+                : ' Start adding interests to get personalized activity suggestions.'}
+            </p>
+          </div>
+        )}
         
         {isLoading && (
           <div className="flex justify-center my-12">
