@@ -22,7 +22,7 @@ def create_prompt(interests, location, weather):
         f"Include a mix of indoor and outdoor options, and highlight any local events. "
         f"Respond strictly in JSON format with the following structure:\n\n"
         f"{{\n"
-        f'  "outdoor__indoor_activities": [\n    {{"name": "Activity Name", "description": "Brief Description"}}\n  ],\n'
+        f'  "outdoor_indoor_activities": [\n    {{"name": "Activity Name", "description": "Brief Description"}}\n  ],\n'
         f'  "local_events": [\n    {{"name": "Event Name", "description": "Brief Description"}}\n  ],\n'
         f'  "considerations": [\n    "Important tips or things to keep in mind"\n  ]\n'
         f"}}\n\n"
