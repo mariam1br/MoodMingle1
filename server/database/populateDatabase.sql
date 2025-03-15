@@ -1,6 +1,6 @@
 -- used chat to come up with ideas
 
-INSERT INTO Users (username, email, passwordHash, location) VALUES
+INSERT INTO Users (username, email, password, location) VALUES
 ('alice123', 'alice@example.com', 'hashed_password_1', 'New York'),
 ('bob99', 'bob@example.com', 'hashed_password_2', 'Los Angeles'),
 ('charlie_yt', 'charlie@example.com', 'hashed_password_3', 'Chicago'),
@@ -18,13 +18,13 @@ INSERT INTO Preferences (userID, keyword) VALUES
 (5, 'Hiking');
 
 
-INSERT INTO Activities (name, category, description, location, weatherDependency, suitableWeather) VALUES
-('Basketball Match', 'Sports', 'Local basketball tournament', 'Madison Square Garden', TRUE, 'Sunny'),
-('Movie Night: Interstellar', 'Movies', 'Sci-Fi movie screening', NULL, FALSE, 'Any'),
-('Painting Workshop', 'Creative', 'Learn to paint landscapes', 'Art Studio LA', FALSE, 'Any'),
-('Rock Concert', 'Music', 'Live rock music event', 'Staples Center', TRUE, 'Any'),
-('Hiking Adventure', 'Travel', 'Guided mountain hike', 'Rocky Mountains', TRUE, 'Sunny'),
-('Football Match', 'Sports', 'Local football match', 'Soldier Field', TRUE, 'Any');
+INSERT INTO Activities (userID, name, category, location, weather, description) VALUES
+(1, 'Basketball Match', 'Sports', 'Madison Square Garden', 'Sunny', 'Local basketball tournament'),
+(1, 'Movie Night: Interstellar', 'Movies', 'Cineplex', 'Any', 'Sci-Fi movie screening'),
+(1, 'Painting Workshop', 'Creative', 'Art Studio LA', 'Any', 'Learn to paint landscapes'),
+(1, 'Rock Concert', 'Music', 'Staples Center', 'Any', 'Live rock music event'),
+(1, 'Hiking Adventure', 'Travel', 'Rocky Mountains', 'Sunny', 'Guided mountain hike'),
+(1, 'Football Match', 'Sports', 'Soldier Field', 'Any', 'Local football match');
 
 
 INSERT INTO Weather (location, Date, temperature, conditions) VALUES
