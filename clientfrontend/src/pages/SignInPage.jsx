@@ -1,7 +1,7 @@
 // src/pages/SignInPage.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, MapPin, AlertCircle, CheckCircle } from 'lucide-react';
+import { Mail, Lock, User, MapPin, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const SignInPage = () => {
@@ -18,6 +18,10 @@ const SignInPage = () => {
     username: '',
     location: ''
   });
+  
+  // Password visibility state
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -164,6 +168,16 @@ const SignInPage = () => {
     setSuccess('');
   };
 
+  // Toggle password visibility
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  // Toggle confirm password visibility
+  const toggleConfirmPasswordVisibility = () => {
+    setShowConfirmPassword(!showConfirmPassword);
+  };
+
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="max-w-md mx-auto">
@@ -284,13 +298,21 @@ const SignInPage = () => {
                   <div className="relative">
                     <Lock className="absolute left-3 top-2.5 text-gray-400" size={20} />
                     <input
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       name="password"
                       value={formData.password}
                       onChange={handleChange}
                       placeholder="Create a password"
-                      className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="w-full pl-10 pr-10 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                     />
+                    <button 
+                      type="button"
+                      onClick={togglePasswordVisibility}
+                      className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                      tabIndex="-1"
+                    >
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
                   </div>
                   <p className="text-xs text-gray-500 mt-1">At least 8 characters</p>
                 </div>
@@ -301,13 +323,21 @@ const SignInPage = () => {
                   <div className="relative">
                     <Lock className="absolute left-3 top-2.5 text-gray-400" size={20} />
                     <input
-                      type="password"
+                      type={showConfirmPassword ? "text" : "password"}
                       name="confirmPassword"
                       value={formData.confirmPassword}
                       onChange={handleChange}
                       placeholder="Confirm your password"
-                      className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="w-full pl-10 pr-10 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                     />
+                    <button 
+                      type="button"
+                      onClick={toggleConfirmPasswordVisibility}
+                      className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                      tabIndex="-1"
+                    >
+                      {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
                   </div>
                 </div>
               </>
@@ -336,13 +366,21 @@ const SignInPage = () => {
                   <div className="relative">
                     <Lock className="absolute left-3 top-2.5 text-gray-400" size={20} />
                     <input
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       name="password"
                       value={formData.password}
                       onChange={handleChange}
                       placeholder="Enter your password"
-                      className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="w-full pl-10 pr-10 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                     />
+                    <button 
+                      type="button"
+                      onClick={togglePasswordVisibility}
+                      className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                      tabIndex="-1"
+                    >
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
                   </div>
                 </div>
                 
