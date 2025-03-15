@@ -48,8 +48,8 @@ const InterestTags = ({ onGenerateActivities, initialInterests = [] }) => {
   }, [previousInterests]);
 
   const suggestedInterests = [
-    'Horror Movies', 'Outdoor Adventures', 'Art & Crafts', 
-    'Local Events', 'Sports', 'Reading', 'Gaming'
+    'Horror', 'Outdoors', 'Arts & Crafts', 
+    'Events', 'Sports', 'Reading', 'Gaming'
   ];
 
   const removeInterest = (interest) => {

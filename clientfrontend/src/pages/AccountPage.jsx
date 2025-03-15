@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSavedActivities } from '../context/SavedActivitiesContext';
-import { User, Heart, Settings, LogOut } from 'lucide-react';
+import { User, Heart, Settings, LogOut, ChevronDown } from 'lucide-react';
 import AccountSettings from '../components/account/AccountSettings';
 import ActivityCard from '../components/activities/ActivityCard';
 
@@ -12,6 +12,7 @@ const AccountPage = () => {
   const { user, logout } = useAuth();
   const { savedActivities } = useSavedActivities();
   const [activeTab, setActiveTab] = useState('profile');
+  const [showMobileTabMenu, setShowMobileTabMenu] = useState(false);
 
   // Redirect to login if not logged in
   if (!user) {
@@ -21,21 +22,29 @@ const AccountPage = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+  };
+
+  const toggleMobileTabMenu = () => {
+    setShowMobileTabMenu(!showMobileTabMenu);
+  };
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setShowMobileTabMenu(false);
   };
 
   const ProfileSection = () => (
     <div className="space-y-6">
-      <div className="flex items-center space-x-4">
-        <div className="bg-purple-100 p-4 rounded-full">
-          <User size={40} className="text-purple-600" />
+      <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
+        <div className="bg-purple-100 p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto sm:mx-0">
+          <User size={32} className="text-purple-600" />
         </div>
-        <div>
+        <div className="text-center sm:text-left">
           <h2 className="text-xl font-semibold">{user?.displayName || 'User Name'}</h2>
           <p className="text-gray-500">{user?.email || 'email@example.com'}</p>
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
         <div className="bg-white p-4 rounded-lg shadow-sm">
           <h3 className="font-medium mb-2">Location</h3>
           <p className="text-gray-600">{user?.location || 'Not set'}</p>
@@ -89,7 +98,7 @@ const AccountPage = () => {
   const SavedActivitiesSection = () => (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Saved Activities</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {savedActivities.length > 0 ? (
           savedActivities.map((activity, index) => (
             <ActivityCard key={index} activity={activity} />
@@ -156,10 +165,58 @@ const AccountPage = () => {
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8">
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        {/* Account Navigation */}
-        <div className="border-b border-gray-200">
+        {/* Mobile Tab Selector */}
+        <div className="md:hidden border-b border-gray-200">
+          <button
+            onClick={toggleMobileTabMenu}
+            className="flex items-center justify-between w-full px-6 py-4 text-left"
+          >
+            <span className="font-medium text-gray-900">
+              {activeTab === 'profile' && 'Profile'}
+              {activeTab === 'saved' && 'Saved Activities'}
+              {activeTab === 'interests' && 'Interests'}
+              {activeTab === 'settings' && 'Settings'}
+            </span>
+            <ChevronDown 
+              size={20} 
+              className={`transform transition-transform ${showMobileTabMenu ? 'rotate-180' : ''}`} 
+            />
+          </button>
+          
+          {showMobileTabMenu && (
+            <div className="border-t border-gray-100">
+              <button
+                onClick={() => handleTabChange('profile')}
+                className={`w-full px-6 py-3 text-left ${activeTab === 'profile' ? 'bg-purple-50 text-purple-600' : ''}`}
+              >
+                Profile
+              </button>
+              <button
+                onClick={() => handleTabChange('saved')}
+                className={`w-full px-6 py-3 text-left ${activeTab === 'saved' ? 'bg-purple-50 text-purple-600' : ''}`}
+              >
+                Saved Activities
+              </button>
+              <button
+                onClick={() => handleTabChange('interests')}
+                className={`w-full px-6 py-3 text-left ${activeTab === 'interests' ? 'bg-purple-50 text-purple-600' : ''}`}
+              >
+                Interests
+              </button>
+              <button
+                onClick={() => handleTabChange('settings')}
+                className={`w-full px-6 py-3 text-left ${activeTab === 'settings' ? 'bg-purple-50 text-purple-600' : ''}`}
+              >
+                Settings
+              </button>
+            </div>
+          )}
+        </div>
+        
+        {/* Desktop Navigation */}
+        <div className="hidden md:block border-b border-gray-200">
           <nav className="flex space-x-8 px-6" aria-label="Account">
             <button
               onClick={() => setActiveTab('profile')}
@@ -211,15 +268,17 @@ const AccountPage = () => {
             </button>
           </nav>
         </div>
+        
         {/* Content Section */}
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {activeTab === 'profile' && <ProfileSection />}
           {activeTab === 'saved' && <SavedActivitiesSection />}
           {activeTab === 'interests' && <InterestsSection />}
           {activeTab === 'settings' && <AccountSettings />}
         </div>
+        
         {/* Logout Section */}
-        <div className="border-t border-gray-200 p-6">
+        <div className="border-t border-gray-200 p-4 sm:p-6">
           <button
             onClick={handleLogout}
             className="flex items-center text-red-600 hover:text-red-700 transition-colors"

@@ -65,9 +65,9 @@ const DiscoverPage = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="container mx-auto px-4 sm:px-6 py-6">
       <div className="max-w-2xl mx-auto"> 
-        <section className="bg-white rounded-xl shadow-sm p-6 mb-8">
+        <section className="bg-white rounded-xl shadow-sm p-4 sm:p-6 mb-8">
           <div className="flex flex-col space-y-4">
             <SearchBar onAddInterest={(interest) => {
               document.dispatchEvent(new CustomEvent('addInterest', { detail: interest }));
@@ -80,7 +80,7 @@ const DiscoverPage = () => {
         </section>
         
         {user && (
-          <div className="bg-purple-50 rounded-xl p-4 mb-8">
+          <div className="bg-purple-50 rounded-xl p-4 mb-8 text-sm sm:text-base">
             <p className="text-purple-600">
               Welcome back, <strong>{user.displayName}</strong>! 
               {userInterests.length > 0 
@@ -114,7 +114,7 @@ const DiscoverPage = () => {
       </div>
       
       {activities.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {activities.map((activity, index) => (
             <ActivityCard key={index} activity={activity} />
           ))}

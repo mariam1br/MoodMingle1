@@ -23,7 +23,7 @@ const SearchBar = ({ onAddInterest }) => {
   };
 
   return (
-    <div className="flex items-center space-x-4">
+    <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
       <div className="flex-1 relative">
         <Search className="absolute left-3 top-3 text-gray-400" size={20} />
         <form onSubmit={handleSubmit} className="w-full">
@@ -37,14 +37,14 @@ const SearchBar = ({ onAddInterest }) => {
           />
         </form>
       </div>
-      <div className="relative">
+      <div className="relative sm:w-auto w-full">
         <MapPin className="absolute left-3 top-3 text-gray-400" size={20} />
         <input
           type="text"
           value={location}
           onChange={(e) => setLocation(e.target.value)}
           placeholder="Location"
-          className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+          className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
         />
       </div>
     </div>
