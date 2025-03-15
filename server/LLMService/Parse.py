@@ -4,10 +4,10 @@ from mysql.connector import Error
 
 # Database connection details
 DB_CONFIG = {
-    'host': '104.198.30.234',  # Replace with your database host
-    'user': 'moodmingle_user',       # Replace with your database username
-    'password': 'team2',  # Replace with your database password
-    'database': 'MoodMingle'  # Replace with your database name
+    'host': '104.198.30.234',  
+    'user': 'moodmingle_user',       
+    'password': 'team2',  
+    'database': 'MoodMingle' 
 }
 
 # Function to connect to the MySQL database
@@ -73,7 +73,7 @@ def insert_local_events(connection, local_events):
 
 # Main function to parse LLM output and insert into the database
 def main():
-    # Example user ID (replace with the actual user ID)
+    # Example user ID 
     user_id = 1
 
     # Example interests, location, and weather
@@ -119,7 +119,6 @@ def main():
     print("\n✅ **Considerations:**\n")
     for tip in considerations:
         print(f"🔹 {tip}")
-
-# Run the main function
+        
 if __name__ == "__main__":
     main()
