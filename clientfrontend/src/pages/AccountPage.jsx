@@ -1,39 +1,95 @@
 // src/pages/AccountPage.jsx
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSavedActivities } from '../context/SavedActivitiesContext';
-import { User, Heart, Settings, LogOut } from 'lucide-react';
+import { User, Heart, Settings, LogOut, ChevronDown } from 'lucide-react';
 import AccountSettings from '../components/account/AccountSettings';
 import ActivityCard from '../components/activities/ActivityCard';
 
 const AccountPage = () => {
+  const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { savedActivities } = useSavedActivities();
   const [activeTab, setActiveTab] = useState('profile');
+  const [showMobileTabMenu, setShowMobileTabMenu] = useState(false);
+
+  // Redirect to login if not logged in
+  if (!user) {
+    navigate('/signin');
+    return null;
+  }
+
+  const handleLogout = () => {
+    logout();
+  };
+
+  const toggleMobileTabMenu = () => {
+    setShowMobileTabMenu(!showMobileTabMenu);
+  };
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setShowMobileTabMenu(false);
+  };
 
   const ProfileSection = () => (
     <div className="space-y-6">
-      <div className="flex items-center space-x-4">
-        <div className="bg-purple-100 p-4 rounded-full">
-          <User size={40} className="text-purple-600" />
+      <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
+        <div className="bg-purple-100 p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto sm:mx-0">
+          <User size={32} className="text-purple-600" />
         </div>
-        <div>
+        <div className="text-center sm:text-left">
           <h2 className="text-xl font-semibold">{user?.displayName || 'User Name'}</h2>
           <p className="text-gray-500">{user?.email || 'email@example.com'}</p>
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
         <div className="bg-white p-4 rounded-lg shadow-sm">
           <h3 className="font-medium mb-2">Location</h3>
           <p className="text-gray-600">{user?.location || 'Not set'}</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm">
           <h3 className="font-medium mb-2">Member Since</h3>
-          <p className="text-gray-600">February 2024</p>
+          <p className="text-gray-600">{user?.memberSince || 'February 2024'}</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm">
           <h3 className="font-medium mb-2">Interests</h3>
-          <p className="text-gray-600">{savedActivities.length} Saved Activities</p>
+          {user?.interests && user.interests.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {user.interests.map((interest, index) => (
+                <span
+                  key={index}
+                  className="bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full text-xs"
+                >
+                  {interest}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-600">No interests added yet</p>
+          )}
+        </div>
+      </div>
+      <div className="bg-white p-4 rounded-lg shadow-sm">
+        <h3 className="font-medium mb-2">Activity Stats</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="text-center">
+            <p className="text-xl font-bold text-purple-600">{savedActivities.length}</p>
+            <p className="text-sm text-gray-500">Saved Activities</p>
+          </div>
+          <div className="text-center">
+            <p className="text-xl font-bold text-purple-600">0</p>
+            <p className="text-sm text-gray-500">Completed</p>
+          </div>
+          <div className="text-center">
+            <p className="text-xl font-bold text-purple-600">0</p>
+            <p className="text-sm text-gray-500">Reviews</p>
+          </div>
+          <div className="text-center">
+            <p className="text-xl font-bold text-purple-600">0</p>
+            <p className="text-sm text-gray-500">Friends</p>
+          </div>
         </div>
       </div>
     </div>
@@ -42,7 +98,7 @@ const AccountPage = () => {
   const SavedActivitiesSection = () => (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Saved Activities</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {savedActivities.length > 0 ? (
           savedActivities.map((activity, index) => (
             <ActivityCard key={index} activity={activity} />
@@ -54,17 +110,113 @@ const AccountPage = () => {
             <p className="text-gray-400">
               Activities you save will appear here. Click the heart icon on any activity to save it for later.
             </p>
+            <button
+              onClick={() => navigate('/')}
+              className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              Discover Activities
+            </button>
           </div>
         )}
       </div>
     </div>
   );
 
+  const InterestsSection = () => (
+    <div className="space-y-6">
+      <h2 className="text-xl font-semibold">Your Interests</h2>
+      {user?.interests && user.interests.length > 0 ? (
+        <div>
+          <div className="flex flex-wrap gap-2 mb-6">
+            {user.interests.map((interest, index) => (
+              <span
+                key={index}
+                className="bg-purple-100 text-purple-600 px-3 py-1 rounded-full text-sm flex items-center"
+              >
+                {interest}
+              </span>
+            ))}
+          </div>
+          <p className="text-gray-600">
+            These interests are used to generate personalized activity recommendations for you.
+          </p>
+          <button
+            onClick={() => navigate('/')}
+            className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            Update Interests
+          </button>
+        </div>
+      ) : (
+        <div className="bg-white p-8 rounded-lg shadow-sm text-center">
+          <p className="text-gray-500 text-lg mb-2">No interests added yet</p>
+          <p className="text-gray-400 mb-4">
+            Adding interests helps us recommend activities that match your preferences.
+          </p>
+          <button
+            onClick={() => navigate('/')}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            Add Interests
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8">
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        {/* Account Navigation */}
-        <div className="border-b border-gray-200">
+        {/* Mobile Tab Selector */}
+        <div className="md:hidden border-b border-gray-200">
+          <button
+            onClick={toggleMobileTabMenu}
+            className="flex items-center justify-between w-full px-6 py-4 text-left"
+          >
+            <span className="font-medium text-gray-900">
+              {activeTab === 'profile' && 'Profile'}
+              {activeTab === 'saved' && 'Saved Activities'}
+              {activeTab === 'interests' && 'Interests'}
+              {activeTab === 'settings' && 'Settings'}
+            </span>
+            <ChevronDown 
+              size={20} 
+              className={`transform transition-transform ${showMobileTabMenu ? 'rotate-180' : ''}`} 
+            />
+          </button>
+          
+          {showMobileTabMenu && (
+            <div className="border-t border-gray-100">
+              <button
+                onClick={() => handleTabChange('profile')}
+                className={`w-full px-6 py-3 text-left ${activeTab === 'profile' ? 'bg-purple-50 text-purple-600' : ''}`}
+              >
+                Profile
+              </button>
+              <button
+                onClick={() => handleTabChange('saved')}
+                className={`w-full px-6 py-3 text-left ${activeTab === 'saved' ? 'bg-purple-50 text-purple-600' : ''}`}
+              >
+                Saved Activities
+              </button>
+              <button
+                onClick={() => handleTabChange('interests')}
+                className={`w-full px-6 py-3 text-left ${activeTab === 'interests' ? 'bg-purple-50 text-purple-600' : ''}`}
+              >
+                Interests
+              </button>
+              <button
+                onClick={() => handleTabChange('settings')}
+                className={`w-full px-6 py-3 text-left ${activeTab === 'settings' ? 'bg-purple-50 text-purple-600' : ''}`}
+              >
+                Settings
+              </button>
+            </div>
+          )}
+        </div>
+        
+        {/* Desktop Navigation */}
+        <div className="hidden md:block border-b border-gray-200">
           <nav className="flex space-x-8 px-6" aria-label="Account">
             <button
               onClick={() => setActiveTab('profile')}
@@ -93,6 +245,17 @@ const AccountPage = () => {
               )}
             </button>
             <button
+              onClick={() => setActiveTab('interests')}
+              className={`py-4 px-1 inline-flex items-center border-b-2 ${
+                activeTab === 'interests'
+                  ? 'border-purple-500 text-purple-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <Settings className="mr-2" size={20} />
+              Interests
+            </button>
+            <button
               onClick={() => setActiveTab('settings')}
               className={`py-4 px-1 inline-flex items-center border-b-2 ${
                 activeTab === 'settings'
@@ -105,18 +268,19 @@ const AccountPage = () => {
             </button>
           </nav>
         </div>
-
+        
         {/* Content Section */}
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {activeTab === 'profile' && <ProfileSection />}
           {activeTab === 'saved' && <SavedActivitiesSection />}
+          {activeTab === 'interests' && <InterestsSection />}
           {activeTab === 'settings' && <AccountSettings />}
         </div>
-
+        
         {/* Logout Section */}
-        <div className="border-t border-gray-200 p-6">
+        <div className="border-t border-gray-200 p-4 sm:p-6">
           <button
-            onClick={logout}
+            onClick={handleLogout}
             className="flex items-center text-red-600 hover:text-red-700 transition-colors"
           >
             <LogOut size={20} className="mr-2" />
