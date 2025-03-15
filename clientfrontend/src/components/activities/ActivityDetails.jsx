@@ -1,9 +1,9 @@
-// src/components/activities/ActivityDetailsModal.jsx
+// src/components/activities/ActivityDetails.jsx
 import React, { useEffect } from 'react';
 import { X, MapPin, Sun, Share2, Heart } from 'lucide-react';
 import { useSavedActivities } from '../../context/SavedActivitiesContext';
 
-const ActivityDetailsModal = ({ activity, onClose }) => {
+const ActivityDetails = ({ activity, onClose }) => {
   const { saveActivity, removeActivity, isActivitySaved } = useSavedActivities();
   const isSaved = isActivitySaved(activity.title);
 
@@ -141,4 +141,4 @@ const ActivityDetailsModal = ({ activity, onClose }) => {
   );
 };
 
-export default ActivityDetailsModal;
+export default ActivityDetails;

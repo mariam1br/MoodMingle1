@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { MapPin, Sun, Heart } from 'lucide-react';
 import { useSavedActivities } from '../../context/SavedActivitiesContext';
-import ActivityDetailsModal from './ActivityDetailsModal';
+import ActivityDetailsModal from './ActivityDetails';
 
 const ActivityCard = ({ activity }) => {
   const { title, category, location, weather, description } = activity;
