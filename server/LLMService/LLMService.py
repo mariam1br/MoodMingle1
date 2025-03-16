@@ -10,7 +10,7 @@ from google import genai
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, origins=["https://myfrontend.netlify.app"])
+CORS(app, origins=["http://localhost:3000"])
 
 GEMINI_API_KEY = os.getenv("LLM_API_KEY")
 

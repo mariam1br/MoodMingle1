@@ -38,27 +38,28 @@ const DiscoverPage = () => {
       : selectedInterests;
 
     // Update user’s saved interests (if logged in)
+
     if (user) {
       setUserInterests(combinedInterests);
       updateUserInterests(combinedInterests);
     }
 
     try {
-      // Make an API call to the backend
-      const response = await fetch("http://127.0.0.1:5000/get-recommendations", {
-        method: "POST",
+      // Make an API call to the deployed backend
+      const response = await fetch('http://127.0.0.1:5000/api/get-recommendations', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          preferences: combinedInterests,
+          interests: selectedInterests,
           location: "Calgary", // Replace with dynamic location if available
-          weather: "Sunny", // Replace with dynamic weather if available
+          weather: "Sunny" // Replace with dynamic weather if available
         }),
       });
 
       if (!response.ok) {
-        throw new Error("Network response was not ok");
+        throw new Error('Network response was not ok');
       }
 
       const data = await response.json();
@@ -67,13 +68,13 @@ const DiscoverPage = () => {
       const transformedActivities = [
         ...data.recommendations.outdoor_activities,
         ...data.recommendations.indoor_activities,
-        ...data.recommendations.local_events,
-      ].map((activity) => ({
+        ...data.recommendations.local_events
+      ].map(activity => ({
         title: activity.name,
         category: activity.genre,
         location: activity.location,
         weather: activity.weather,
-        description: activity.description,
+        description: activity.description
       }));
 
       setActivities(transformedActivities);
