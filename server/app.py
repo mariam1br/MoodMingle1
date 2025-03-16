@@ -159,6 +159,7 @@ def get_recommendations():
     interests = data.get("interests", [])
     location = data.get("location", "Unknown")
     weather = data.get("weather", "Unknown")
+    print(location, weather)
 
     if not interests or not location:
         return jsonify({"error": "Interests and location are required."}), 400

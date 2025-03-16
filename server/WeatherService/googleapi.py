@@ -55,29 +55,3 @@ def get_weather(lat, lon):
             for alert in alerts
         ],
     }
-
-
-@app.route("/get_weather", methods=["POST"])
-def weather():
-    global latest_location, latest_weather  # Store in global variables
-
-    data = request.json
-    lat, lon = data.get("latitude"), data.get("longitude")
-
-    if not lat or not lon:
-        return jsonify({"error": "Invalid coordinates"}), 400
-
-    latest_location = get_location(lat, lon)
-    latest_weather = get_weather(lat, lon)
-
-    return jsonify({"location": latest_location, "weather": latest_weather})
-
-
-# Endpoint to get saved weather data for LLM
-@app.route("/get_saved_data", methods=["GET"])
-def get_saved_data():
-    return jsonify({"location": latest_location, "weather": latest_weather})
-
-
-if __name__ == "__main__":
-    app.run(debug=True)
