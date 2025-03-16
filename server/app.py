@@ -116,43 +116,58 @@ def logout():
 # API Endpoint to Get Recommendations
 @app.route("/get-recommendations", methods=["POST"])
 def get_recommendations():
-    try:
-        # Get location and weather from the frontend request
-        data = request.json
-        location = data.get("location", "Unknown")
-        weather = data.get("weather", "Unknown")
-        # location = get_weather()
-        # weather = get_location()
-        preferences = data.get("preferences", [])
+    data = request.json
+    interests = data.get("interests", [])
+    location = data.get("location", "Unknown")
+    weather = data.get("weather", "Unknown")
 
-        # Check if a user is logged in
-        if 'user' in session:
-            current_user = session['user']
-            username = current_user.get("username")
+    if not interests or not location:
+        return jsonify({"error": "Interests and location are required."}), 400
 
-            # Connect to the database to fetch user preferences
-            db.connect()
-            dq_query = dq(db.connection)
+    # Generate prompt and query LLM
+    prompt = create_prompt(interests, location, weather)
+    recommendations = query_gemini(prompt)
 
-            # Fetch user preferences from DB if available
-            user_preferences = dq_query.get_preferences(username)
-            db.disconnect()
+    return jsonify({"recommendations": recommendations})
 
-            # If preferences exist in DB, use them
-            if user_preferences and user_preferences[0][0]:
-                preferences = user_preferences[0][0].split(",")  
+# def get_recommendations():
+#     try:
+#         # Get location and weather from the frontend request
+#         data = request.json
+#         location = data.get("location", "Unknown")
+#         weather = data.get("weather", "Unknown")
+#         # location = get_weather()
+#         # weather = get_location()
+#         preferences = data.get("preferences", [])
 
-        # Generate the prompt and query Gemini
-        prompt = create_prompt(preferences, location, weather)
-        recommendations = query_gemini(prompt)
+#         # Check if a user is logged in
+#         if 'user' in session:
+#             current_user = session['user']
+#             username = current_user.get("username")
 
-        # Return recommendations
-        return jsonify({"recommendations": recommendations})
+#             # Connect to the database to fetch user preferences
+#             db.connect()
+#             dq_query = dq(db.connection)
 
-    except Exception as e:
-        print(f"Error in get_recommendations: {str(e)}")
-        db.disconnect()
-        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+#             # Fetch user preferences from DB if available
+#             user_preferences = dq_query.get_preferences(username)
+#             db.disconnect()
+
+#             # If preferences exist in DB, use them
+#             if user_preferences and user_preferences[0][0]:
+#                 preferences = user_preferences[0][0].split(",")  
+
+#         # Generate the prompt and query Gemini
+#         prompt = create_prompt(preferences, location, weather)
+#         recommendations = query_gemini(prompt)
+
+#         # Return recommendations
+#         return jsonify({"recommendations": recommendations})
+
+#     except Exception as e:
+#         print(f"Error in get_recommendations: {str(e)}")
+#         db.disconnect()
+#         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
 if __name__ == "__main__":
     app.run(debug=True)
