@@ -21,6 +21,14 @@ const DiscoverPage = () => {
   }, [user]);
 
   const handleGenerateActivities = async (selectedInterests) => {
+    // If no interests are selected, clear activities
+    if (selectedInterests.length === 0) {
+      setActivities([]);
+      setGeneratedInterests([]);
+      setHasGenerated(false);
+      return;
+    }
+    
     setIsLoading(true);
     setGeneratedInterests(selectedInterests);
     
@@ -65,6 +73,17 @@ const DiscoverPage = () => {
     }
   };
 
+  // Function to handle interest changes from InterestTags component
+  const handleInterestsChange = (updatedInterests) => {
+    // Only update activities if we had previously generated them
+    // This prevents clearing when we haven't generated anything yet
+    if (hasGenerated && updatedInterests.length === 0) {
+      setActivities([]);
+      setGeneratedInterests([]);
+      setHasGenerated(false);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 sm:px-6 py-6">
       <div className="max-w-2xl mx-auto"> 
@@ -74,7 +93,8 @@ const DiscoverPage = () => {
               document.dispatchEvent(new CustomEvent('addInterest', { detail: interest }));
             }} />
             <InterestTags 
-              onGenerateActivities={handleGenerateActivities} 
+              onGenerateActivities={handleGenerateActivities}
+              onInterestsChange={handleInterestsChange}
               initialInterests={userInterests}
             />
           </div>

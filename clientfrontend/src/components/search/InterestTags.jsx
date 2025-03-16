@@ -1,7 +1,7 @@
 // src/components/search/InterestTags.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 
-const InterestTags = ({ onGenerateActivities, initialInterests = [] }) => {
+const InterestTags = ({ onGenerateActivities, onInterestsChange, initialInterests = [] }) => {
   const [interests, setInterests] = useState([]);
   const [previousInterests, setPreviousInterests] = useState([]);
 
@@ -11,6 +11,17 @@ const InterestTags = ({ onGenerateActivities, initialInterests = [] }) => {
       setInterests(initialInterests);
     }
   }, [initialInterests]);
+
+  // Notify parent component when interests change - with a local state update
+  // that doesn't block navigation
+  useEffect(() => {
+    if (onInterestsChange) {
+      // Use setTimeout to avoid blocking the UI thread
+      setTimeout(() => {
+        onInterestsChange(interests);
+      }, 0);
+    }
+  }, [interests, onInterestsChange]);
 
   // Define addInterest using useCallback before using it in useEffect
   const addInterest = useCallback((interest) => {
@@ -23,7 +34,12 @@ const InterestTags = ({ onGenerateActivities, initialInterests = [] }) => {
   useEffect(() => {
     const savedInterests = localStorage.getItem('previousInterests');
     if (savedInterests) {
-      setPreviousInterests(JSON.parse(savedInterests));
+      try {
+        setPreviousInterests(JSON.parse(savedInterests));
+      } catch (e) {
+        console.error("Error parsing saved interests", e);
+        setPreviousInterests([]);
+      }
     }
   }, []);
   
@@ -44,7 +60,11 @@ const InterestTags = ({ onGenerateActivities, initialInterests = [] }) => {
 
   // Save previousInterests to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem('previousInterests', JSON.stringify(previousInterests));
+    try {
+      localStorage.setItem('previousInterests', JSON.stringify(previousInterests));
+    } catch (e) {
+      console.error("Error saving previous interests", e);
+    }
   }, [previousInterests]);
 
   const suggestedInterests = [
@@ -53,23 +73,17 @@ const InterestTags = ({ onGenerateActivities, initialInterests = [] }) => {
   ];
 
   const removeInterest = (interest) => {
-    setInterests(interests.filter(i => i !== interest));
+    setInterests(prev => prev.filter(i => i !== interest));
   };
 
   const removePreviousInterest = (interest) => {
-    setPreviousInterests(previousInterests.filter(i => i !== interest));
+    setPreviousInterests(prev => prev.filter(i => i !== interest));
   };
 
   const handleGenerateActivities = () => {
-    // If we have interests to generate activities for
-    if (interests.length > 0) {
-      // Combine with previous interests, removing duplicates
-      const updatedPreviousInterests = [...new Set([...previousInterests, ...interests])];
-      setPreviousInterests(updatedPreviousInterests);
-      
-      // Call the onGenerateActivities prop with the current interests
-      onGenerateActivities(interests);
-    }
+    // Call the onGenerateActivities prop with the current interests
+    // without any additional logic that could block navigation
+    onGenerateActivities(interests);
   };
 
   return (
@@ -88,6 +102,7 @@ const InterestTags = ({ onGenerateActivities, initialInterests = [] }) => {
                 <button
                   onClick={() => removeInterest(interest)}
                   className="ml-2 text-purple-400 hover:text-purple-600"
+                  aria-label={`Remove ${interest}`}
                 >
                   ×
                 </button>
@@ -102,11 +117,10 @@ const InterestTags = ({ onGenerateActivities, initialInterests = [] }) => {
       {/* Generate Activities Button */}
       <button
         onClick={handleGenerateActivities}
-        disabled={interests.length === 0}
         className={`w-full py-2 px-4 rounded-lg transition-colors ${
           interests.length > 0
             ? 'bg-purple-600 text-white hover:bg-purple-700'
-            : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+            : 'bg-gray-200 text-gray-500'
         }`}
       >
         Generate Activities
@@ -126,6 +140,7 @@ const InterestTags = ({ onGenerateActivities, initialInterests = [] }) => {
                 <button
                   onClick={() => removePreviousInterest(interest)}
                   className="ml-2 text-gray-400 hover:text-gray-600"
+                  aria-label={`Remove ${interest} from history`}
                 >
                   ×
                 </button>
@@ -133,6 +148,7 @@ const InterestTags = ({ onGenerateActivities, initialInterests = [] }) => {
                   onClick={() => addInterest(interest)}
                   className="ml-1 text-purple-400 hover:text-purple-600"
                   disabled={interests.includes(interest)}
+                  aria-label={`Add ${interest} to current interests`}
                 >
                   +
                 </button>
@@ -156,6 +172,7 @@ const InterestTags = ({ onGenerateActivities, initialInterests = [] }) => {
                   : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
               }`}
               disabled={interests.includes(interest)}
+              aria-label={`Add ${interest} to interests`}
             >
               {interest}
             </button>
