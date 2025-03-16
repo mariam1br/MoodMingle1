@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import SearchBar from '../components/search/SearchBar';
 import InterestTags from '../components/search/InterestTags';
-import ActivityGrid from '../components/activities/ActivityGrid';
 import ActivityCard from '../components/activities/ActivityCard';
 import { useAuth } from '../context/AuthContext';
 
@@ -12,6 +11,7 @@ const DiscoverPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [generatedInterests, setGeneratedInterests] = useState([]);
   const [userInterests, setUserInterests] = useState([]);
+  const [hasGenerated, setHasGenerated] = useState(false);
 
   // Load user interests if logged in
   useEffect(() => {
@@ -21,6 +21,14 @@ const DiscoverPage = () => {
   }, [user]);
 
   const handleGenerateActivities = async (selectedInterests) => {
+    // If no interests are selected, clear activities
+    if (selectedInterests.length === 0) {
+      setActivities([]);
+      setGeneratedInterests([]);
+      setHasGenerated(false);
+      return;
+    }
+    
     setIsLoading(true);
     setGeneratedInterests(selectedInterests);
     
@@ -57,10 +65,22 @@ const DiscoverPage = () => {
       });
       
       setActivities(mockActivities);
+      setHasGenerated(true);
     } catch (error) {
       console.error('Error generating activities:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Function to handle interest changes from InterestTags component
+  const handleInterestsChange = (updatedInterests) => {
+    // Only update activities if we had previously generated them
+    // This prevents clearing when we haven't generated anything yet
+    if (hasGenerated && updatedInterests.length === 0) {
+      setActivities([]);
+      setGeneratedInterests([]);
+      setHasGenerated(false);
     }
   };
 
@@ -73,7 +93,8 @@ const DiscoverPage = () => {
               document.dispatchEvent(new CustomEvent('addInterest', { detail: interest }));
             }} />
             <InterestTags 
-              onGenerateActivities={handleGenerateActivities} 
+              onGenerateActivities={handleGenerateActivities}
+              onInterestsChange={handleInterestsChange}
               initialInterests={userInterests}
             />
           </div>
@@ -96,7 +117,7 @@ const DiscoverPage = () => {
           </div>
         )}
         
-        {generatedInterests.length > 0 && !isLoading && (
+        {generatedInterests.length > 0 && !isLoading && hasGenerated && (
           <div className="mb-8">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Activities based on your interests</h2>
             <div className="flex flex-wrap gap-2 mb-4">
@@ -113,7 +134,7 @@ const DiscoverPage = () => {
         )}
       </div>
       
-      {activities.length > 0 && (
+      {activities.length > 0 && !isLoading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {activities.map((activity, index) => (
             <ActivityCard key={index} activity={activity} />
@@ -121,8 +142,18 @@ const DiscoverPage = () => {
         </div>
       )}
       
-      {activities.length === 0 && !isLoading && (
-        <ActivityGrid />
+      {!isLoading && !hasGenerated && (
+        <div className="text-center py-12">
+          <div className="text-purple-600 mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Add your interests and discover activities</h2>
+          <p className="text-gray-600 max-w-md mx-auto">
+            Enter your interests above and click "Generate Activities" to see personalized activity recommendations.
+          </p>
+        </div>
       )}
     </div>
   );
