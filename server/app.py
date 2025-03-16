@@ -4,10 +4,14 @@ from database.databaseConnection import db  # Ensure this is set up to connect t
 from database.databaseQueries import DatabaseQueries as dq  # Import your query class
 from LLMService.LLMService import create_prompt, query_gemini
 from WeatherService.googleapi import get_location, get_weather
+import requests
+import os
+from dotenv import load_dotenv
 
 app = Flask(__name__)
-app.secret_key = 'kbo7c43w7898jbs'  # Required for session management
+app.secret_key = "kbo7c43w7898jbs"  # Required for session management
 CORS(app, supports_credentials=True)  # Enable CORS for frontend-backend communication
+
 
 # User login
 @app.route("/login", methods=["POST"])
@@ -20,39 +24,66 @@ def login():
 
         db.connect()
         dq_query = dq(db.connection)
-        
+
         # Retrieve user credentials from the database
         user_credentials = dq_query.user_exists_2(username, password)
-        
+
         if user_credentials:
-            stored_username, stored_password = user_credentials  # Unpack the username and password from the result
-            
+            stored_username, stored_password = (
+                user_credentials  # Unpack the username and password from the result
+            )
+
             # Check if the entered password matches the stored password (if using hashed passwords, use check_password_hash)
-            if stored_username == username and stored_password == password:  # For plaintext passwords
+            if (
+                stored_username == username and stored_password == password
+            ):  # For plaintext passwords
                 # For hashed passwords, you would use check_password_hash(stored_password, password)
-                
+
                 # Retrieve user data to store in session
-                user_data = dq_query.select_from_table("Users", columns=["username", "email"], conditions=f"username='{username}'")[0]
+                user_data = dq_query.select_from_table(
+                    "Users",
+                    columns=["username", "email"],
+                    conditions=f"username='{username}'",
+                )[0]
                 db.disconnect()
-                
+
                 # Store user in session after successful login
-                session['user'] = dict(zip(["username", "email", "displayName"], user_data))
-                
-                print("Login Successful")            
-                return jsonify({"success": True, "user": dict(zip(["username", "email"], user_data))})
+                session["user"] = dict(
+                    zip(["username", "email", "displayName"], user_data)
+                )
+
+                print("Login Successful")
+                return jsonify(
+                    {
+                        "success": True,
+                        "user": dict(zip(["username", "email"], user_data)),
+                    }
+                )
             else:
                 print("Password does not match")
                 db.disconnect()
-                return jsonify({"success": False, "error": "Invalid username or password"}), 401
+                return (
+                    jsonify(
+                        {"success": False, "error": "Invalid username or password"}
+                    ),
+                    401,
+                )
         else:
             print("No matching user found")
             db.disconnect()
-            return jsonify({"success": False, "error": "Invalid username or password"}), 401
+            return (
+                jsonify({"success": False, "error": "Invalid username or password"}),
+                401,
+            )
 
     except Exception as e:
         print(f"Error during login: {str(e)}")
         db.disconnect()
-        return jsonify({"success": False, "error": "An error occurred during login"}), 500
+        return (
+            jsonify({"success": False, "error": "An error occurred during login"}),
+            500,
+        )
+
 
 # User signup
 @app.route("/signup", methods=["POST"])
@@ -64,12 +95,17 @@ def signup():
 
     db.connect()
     dq_query = dq(db.connection())
-    if dq_query.add_user(username, email, password):  # Assuming this function inserts into DB
+    if dq_query.add_user(
+        username, email, password
+    ):  # Assuming this function inserts into DB
         db.disconnect()
-        return jsonify({"success": True, "user": {"username": username, "email": email}})
+        return jsonify(
+            {"success": True, "user": {"username": username, "email": email}}
+        )
     else:
         db.disconnect()
         return jsonify({"success": False, "error": "Signup failed"}), 400
+
 
 # Update user profile
 @app.route("/update-profile", methods=["PUT"])
@@ -91,27 +127,30 @@ def update_profile():
         db.disconnect()
         return jsonify({"success": False, "error": "Update failed"}), 400
 
+
 # Get current logged-in user
 @app.route("/current-user", methods=["GET"])
 def current_user():
-    if 'user' in session:
-        return jsonify({"success": True, "user": session['user']})
+    if "user" in session:
+        return jsonify({"success": True, "user": session["user"]})
     else:
-         # If no user is logged in, return a default guest user
+        # If no user is logged in, return a default guest user
         guest_user = {
             "username": "Guest",
             "email": "",
             "displayName": "Guest User",
-            "isGuest": True  # Flag to indicate this is a guest user
+            "isGuest": True,  # Flag to indicate this is a guest user
         }
         return jsonify({"success": True, "user": guest_user})
+
 
 # Logout route to clear session
 @app.route("/logout", methods=["POST"])
 def logout():
-    session.pop('user', None)  # Remove user from session
+    session.pop("user", None)  # Remove user from session
     print("Successfuly Logged Out")
     return jsonify({"success": True, "message": "Logged out successfully"})
+
 
 # API Endpoint to Get Recommendations
 @app.route("/get-recommendations", methods=["POST"])
@@ -129,6 +168,29 @@ def get_recommendations():
     recommendations = query_gemini(prompt)
 
     return jsonify({"recommendations": recommendations})
+
+
+@app.route("/get_weather", methods=["POST"])
+def weather():
+    global latest_location, latest_weather  # Store in global variables
+
+    data = request.json
+    lat, lon = data.get("latitude"), data.get("longitude")
+
+    if not lat or not lon:
+        return jsonify({"error": "Invalid coordinates"}), 400
+
+    latest_location = get_location(lat, lon)
+    latest_weather = get_weather(lat, lon)
+
+    return jsonify({"location": latest_location, "weather": latest_weather})
+
+
+# Endpoint to get saved weather data for LLM
+@app.route("/get_saved_data", methods=["GET"])
+def get_saved_data():
+    return jsonify({"location": latest_location, "weather": latest_weather})
+
 
 # def get_recommendations():
 #     try:
@@ -155,7 +217,7 @@ def get_recommendations():
 
 #             # If preferences exist in DB, use them
 #             if user_preferences and user_preferences[0][0]:
-#                 preferences = user_preferences[0][0].split(",")  
+#                 preferences = user_preferences[0][0].split(",")
 
 #         # Generate the prompt and query Gemini
 #         prompt = create_prompt(preferences, location, weather)

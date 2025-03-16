@@ -53,8 +53,8 @@ const DiscoverPage = () => {
         },
         body: JSON.stringify({
           interests: selectedInterests,
-          location: "Calgary", // Replace with dynamic location if available
-          weather: "Sunny" // Replace with dynamic weather if available
+          location: location, // Replace with dynamic location if available
+          weather: weather.condition // Replace with dynamic weather if available
         }),
       });
 
