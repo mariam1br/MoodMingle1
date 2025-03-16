@@ -4,6 +4,7 @@ import SearchBar from "../components/search/SearchBar";
 import InterestTags from "../components/search/InterestTags";
 import ActivityCard from "../components/activities/ActivityCard";
 import { useAuth } from "../context/AuthContext";
+import axios from "axios";
 
 const DiscoverPage = () => {
   const { user, updateUserInterests } = useAuth();
@@ -12,6 +13,10 @@ const DiscoverPage = () => {
   const [generatedInterests, setGeneratedInterests] = useState([]);
   const [userInterests, setUserInterests] = useState([]);
   const [hasGenerated, setHasGenerated] = useState(false);
+  const [location, setLocation] = useState("");
+  const [weather, setWeather] = useState(null);
+  const [error, setError] = useState("");
+
 
   // Load user interests if logged in
   useEffect(() => {
@@ -95,6 +100,32 @@ const DiscoverPage = () => {
       setHasGenerated(false);
     }
   };
+
+  // Fetch weather data based on user's location
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+
+          try {
+            const response = await axios.post("http://127.0.0.1:5000/get_weather", {
+              latitude,
+              longitude,
+            });
+
+            setLocation(response.data.location);
+            setWeather(response.data.weather);
+          } catch (err) {
+            setError("Failed to fetch weather data.");
+          }
+        },
+        () => setError("Location access denied.")
+      );
+    } else {
+      setError("Geolocation is not supported.");
+    }
+  }, []);
 
   return (
     <div className="container mx-auto px-4 sm:px-6 py-6">
