@@ -77,6 +77,21 @@ class DatabaseQueries:
             print(f"Error deleting user {username}: {e}")
             return False
 
+    # Get user's name by username
+    def get_name_by_username(self, username):
+        query = "SELECT name FROM Users WHERE username = %s"
+        try:
+            self.cursor.execute(query, (username,))
+            result = self.cursor.fetchone()
+            if result:
+                return result[0]  # Return the name of the user
+            else:
+                print(f"No user found with username: {username}")
+                return None
+        except mysql.connector.Error as e:
+            print(f"Error fetching name for {username}: {e}")
+            return None
+
     # Save user preferences (List of preferences)
     def save_preferences(self, username, preferences):
         user_id_query = "SELECT userID FROM Users WHERE username = %s"

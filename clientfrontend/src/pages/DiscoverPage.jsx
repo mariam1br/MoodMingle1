@@ -4,6 +4,8 @@ import SearchBar from '../components/search/SearchBar';
 import InterestTags from '../components/search/InterestTags';
 import ActivityCard from '../components/activities/ActivityCard';
 import { useAuth } from '../context/AuthContext';
+import axios from "axios";
+  
 
 const DiscoverPage = () => {
   const { user, updateUserInterests } = useAuth();
@@ -12,6 +14,9 @@ const DiscoverPage = () => {
   const [generatedInterests, setGeneratedInterests] = useState([]);
   const [userInterests, setUserInterests] = useState([]);
   const [hasGenerated, setHasGenerated] = useState(false);
+  const [location, setLocation] = useState("");
+  const [weather, setWeather] = useState(null);
+  const [error, setError] = useState("");
 
   // Load user interests if logged in
   useEffect(() => {
@@ -84,6 +89,32 @@ const DiscoverPage = () => {
     }
   };
 
+  // Fetch weather data based on user's location
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+
+          try {
+            const response = await axios.post("http://127.0.0.1:5000/get_weather", {
+              latitude,
+              longitude,
+            });
+
+            setLocation(response.data.location);
+            setWeather(response.data.weather);
+          } catch (err) {
+            setError("Failed to fetch weather data.");
+          }
+        },
+        () => setError("Location access denied.")
+      );
+    } else {
+      setError("Geolocation is not supported.");
+    }
+  }, []);
+
   return (
     <div className="container mx-auto px-4 sm:px-6 py-6">
       <div className="max-w-2xl mx-auto"> 
@@ -149,6 +180,7 @@ const DiscoverPage = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
             </svg>
           </div>
+          
           <h2 className="text-xl font-semibold text-gray-800 mb-2">Add your interests and discover activities</h2>
           <p className="text-gray-600 max-w-md mx-auto">
             Enter your interests above and click "Generate Activities" to see personalized activity recommendations.
@@ -158,5 +190,6 @@ const DiscoverPage = () => {
     </div>
   );
 };
+
 
 export default DiscoverPage;
