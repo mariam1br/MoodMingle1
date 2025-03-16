@@ -10,7 +10,7 @@ from google import genai
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, origins=["https://myfrontend.netlify.app"])
+CORS(app, origins=["http://localhost:3000"])
 
 GEMINI_API_KEY = os.getenv("LLM_API_KEY")
 
@@ -72,13 +72,8 @@ def get_recommendations():
 
     return jsonify({"recommendations": recommendations})
 
-if __name__ == "__main__":
-    interests = ['Hiking', 'Basketball', 'Horror Movies', 'Gaming']
-    location = "Calgary"
-    weather = 'Sunny'
-    prompt = create_prompt(interests, location, weather)
-    recommendations = query_gemini(prompt)
 
-    print(recommendations)
+if __name__ == "__main__":
+    app.run(debug=True)
 
     # jsonify({"recommendations": recommendations})

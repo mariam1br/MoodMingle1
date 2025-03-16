@@ -28,43 +28,51 @@ const DiscoverPage = () => {
       setHasGenerated(false);
       return;
     }
-    
+
     setIsLoading(true);
     setGeneratedInterests(selectedInterests);
-    
+
     // If logged in, save the interests to user profile
     if (user) {
       // Update both local state and context
       setUserInterests(selectedInterests);
       updateUserInterests(selectedInterests);
     }
-    
+
     try {
-      // In a real application, you would make an API call here
-      // For now, we'll simulate with a timeout
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Generate mock activities based on selected interests
-      const mockActivities = selectedInterests.flatMap(interest => {
-        return [
-          {
-            title: `${interest} Workshop`,
-            category: interest,
-            location: "Local Community Center",
-            weather: "Indoor",
-            description: `Join fellow ${interest} enthusiasts for a hands-on workshop experience.`
-          },
-          {
-            title: `${interest} Meetup`,
-            category: interest,
-            location: "Downtown",
-            weather: "Any",
-            description: `Connect with others who share your passion for ${interest}.`
-          }
-        ];
+      // Make an API call to the deployed backend
+      const response = await fetch('http://127.0.0.1:5000/api/get-recommendations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          interests: selectedInterests,
+          location: "Calgary", // Replace with dynamic location if available
+          weather: "Sunny" // Replace with dynamic weather if available
+        }),
       });
-      
-      setActivities(mockActivities);
+
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+
+      const data = await response.json();
+
+      // Transform the response into the format expected by the frontend
+      const transformedActivities = [
+        ...data.recommendations.outdoor_activities,
+        ...data.recommendations.indoor_activities,
+        ...data.recommendations.local_events
+      ].map(activity => ({
+        title: activity.name,
+        category: activity.genre,
+        location: activity.location,
+        weather: activity.weather,
+        description: activity.description
+      }));
+
+      setActivities(transformedActivities);
       setHasGenerated(true);
     } catch (error) {
       console.error('Error generating activities:', error);
