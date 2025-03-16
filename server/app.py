@@ -142,10 +142,6 @@ def get_recommendations():
             if user_preferences and user_preferences[0][0]:
                 preferences = user_preferences[0][0].split(",")  
 
-        # Ensure preferences are present (either from DB or frontend)
-        if not preferences:
-            return jsonify({"error": "No preferences provided"}), 400
-
         # Generate the prompt and query Gemini
         prompt = create_prompt(preferences, location, weather)
         recommendations = query_gemini(prompt)
