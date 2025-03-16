@@ -55,7 +55,7 @@ def query_gemini(prompt):
         return {"error": f"Error querying Gemini: {str(e)}"}
 
 
-# API Endpoint to Get Recommendations from Gemini
+# API Endpoint to Get Recommendations
 @app.route("/api/get-recommendations", methods=["POST"])
 def get_recommendations():
     data = request.json
@@ -72,13 +72,6 @@ def get_recommendations():
 
     return jsonify({"recommendations": recommendations})
 
+
 if __name__ == "__main__":
-    interests = ['Hiking', 'Basketball', 'Horror Movies', 'Gaming']
-    location = "Calgary"
-    weather = 'Sunny'
-    prompt = create_prompt(interests, location, weather)
-    recommendations = query_gemini(prompt)
-
-    print(recommendations)
-
-    # jsonify({"recommendations": recommendations})
+    app.run(debug=True)
