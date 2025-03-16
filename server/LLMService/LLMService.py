@@ -53,25 +53,3 @@ def query_gemini(prompt):
     
     except Exception as e:
         return {"error": f"Error querying Gemini: {str(e)}"}
-
-
-# API Endpoint to Get Recommendations
-@app.route("/api/get-recommendations", methods=["POST"])
-def get_recommendations():
-    data = request.json
-    interests = data.get("interests", [])
-    location = data.get("location", "Unknown")
-    weather = data.get("weather", "Unknown")
-
-    if not interests or not location:
-        return jsonify({"error": "Interests and location are required."}), 400
-
-    # Generate prompt and query LLM
-    prompt = create_prompt(interests, location, weather)
-    recommendations = query_gemini(prompt)
-
-    return jsonify({"recommendations": recommendations})
-
-
-if __name__ == "__main__":
-    app.run(debug=True)

@@ -3,6 +3,7 @@ from flask_cors import CORS
 from database.databaseConnection import db  # Ensure this is set up to connect to MySQL
 from database.databaseQueries import DatabaseQueries as dq  # Import your query class
 from LLMService.LLMService import create_prompt, query_gemini
+from WeatherService.googleapi import get_location, get_weather
 
 app = Flask(__name__)
 app.secret_key = 'kbo7c43w7898jbs'  # Required for session management
@@ -113,48 +114,43 @@ def logout():
     return jsonify({"success": True, "message": "Logged out successfully"})
 
 # API Endpoint to Get Recommendations
-@app.route("/api/get-recommendations", methods=["POST"])
+@app.route("/get-recommendations", methods=["POST"])
 def get_recommendations():
     try:
-        # 1️⃣ Get the current user from the session
-        if 'user' not in session:
-            return jsonify({"error": "User not logged in"}), 401
-        
-        current_user = session['user']
-        username = current_user.get("username")
-
-        # 2️⃣ Connect to the database to fetch user preferences
-        db.connect()
-        dq_query = dq(db.connection)
-
-        # Assuming there's a preferences column in the Users table
-        user_preferences = dq_query.select_from_table(
-            "Users", 
-            columns=["preferences"], 
-            conditions=f"username='{username}'"
-        )
-
-        db.disconnect()
-
-        # Ensure we actually got preferences
-        if not user_preferences or not user_preferences[0][0]:
-            return jsonify({"error": "No preferences found for user"}), 400
-        
-        preferences = user_preferences[0][0].split(",")  # Assuming preferences are comma-separated
-
-        # 3️⃣ Get location and weather from the frontend request
+        # Get location and weather from the frontend request
         data = request.json
         location = data.get("location", "Unknown")
         weather = data.get("weather", "Unknown")
+        # location = get_weather()
+        # weather = get_location()
+        preferences = data.get("preferences", [])
 
-        if not location or not weather:
-            return jsonify({"error": "Location and weather are required"}), 400
+        # Check if a user is logged in
+        if 'user' in session:
+            current_user = session['user']
+            username = current_user.get("username")
 
-        # 4️⃣ Generate the prompt and query Gemini
+            # Connect to the database to fetch user preferences
+            db.connect()
+            dq_query = dq(db.connection)
+
+            # Fetch user preferences from DB if available
+            user_preferences = dq_query.get_preferences(username)
+            db.disconnect()
+
+            # If preferences exist in DB, use them
+            if user_preferences and user_preferences[0][0]:
+                preferences = user_preferences[0][0].split(",")  
+
+        # Ensure preferences are present (either from DB or frontend)
+        if not preferences:
+            return jsonify({"error": "No preferences provided"}), 400
+
+        # Generate the prompt and query Gemini
         prompt = create_prompt(preferences, location, weather)
         recommendations = query_gemini(prompt)
 
-        # 5️⃣ Return recommendations
+        # Return recommendations
         return jsonify({"recommendations": recommendations})
 
     except Exception as e:
