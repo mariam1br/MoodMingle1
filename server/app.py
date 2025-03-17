@@ -487,28 +487,16 @@ def save_interests():
 
         # Save user interests to the database
         success = db_queries.save_preferences(username, interests)
-        
-        # Regardless of success, make sure we disconnect from the database
-        try:
-            DatabaseConnection.disconnect(datab)
-        except:
-            pass
-            
+        DatabaseConnection.disconnect(datab)
+
         if success:
-            # Update user session with new interests
-            if "user" in session:
-                current_user = session["user"]
-                current_user["interests"] = interests
-                session["user"] = current_user
-                
             return jsonify({"success": True, "message": "Interests saved successfully"})
         else:
-            return jsonify({"success": False, "error": "Failed to save interests"}), 500
+            return jsonify({"success": False, "error": "Failed to save interests"})
 
     except Exception as e:
-        print(f"Error saving interests: {str(e)}")
-        traceback.print_exc()
         return jsonify({"success": False, "error": str(e)}), 500
+
 
 if __name__ == "__main__":
     app.run(port=5001, debug=True)

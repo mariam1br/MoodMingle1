@@ -6,6 +6,8 @@ import ActivityCard from '../components/activities/ActivityCard';
 import { useAuth } from '../context/AuthContext';
 import axios from "axios";
   
+const API_BASE_URL = "http://localhost:5001"; // Ensure this matches your backend URL
+
 const DiscoverPage = () => {
   const { user } = useAuth(); // Remove updateUserInterests from destructuring
   const [activities, setActivities] = useState([]);
@@ -25,61 +27,51 @@ const DiscoverPage = () => {
   }, [user]);
 
   const handleGenerateActivities = async (selectedInterests) => {
-    // If no interests are selected, clear activities
-    if (selectedInterests.length === 0) {
-      setActivities([]);
-      setGeneratedInterests([]);
-      setHasGenerated(false);
-      return;
-    }
-  
-    setIsLoading(true);
-    setErrorMessage(""); // Clear any previous error messages
+    // Optimistically update UI
     setGeneratedInterests(selectedInterests);
-    
-    // Update userInterests when generating activities
     setUserInterests(selectedInterests);
+    setHasGenerated(false); // Reset previous results
+    setIsLoading(true);
   
     try {
       if (user) {
-        try {
-          // Save interests to the database
-          await axios.post("http://127.0.0.1:5001/save-interests", 
-            { interests: selectedInterests },
-            { withCredentials: true }
-          );
-        } catch (saveError) {
-          console.error("Error saving interests:", saveError);
-          // Continue with recommendations even if saving interests fails
+        // Save interests to the database
+        const response = await axios.post(
+          `${API_BASE_URL}/save-interests`,
+          { interests: selectedInterests },
+          { withCredentials: true }
+        );
+  
+        if (!response.data.success) {
+          console.error("Failed to save interests:", response.data.error);
+          setUserInterests([]); // Rollback UI update
         }
       }
   
       // Fetch activity recommendations
-      const response = await fetch("http://127.0.0.1:5001/get-recommendations", {
+      const response = await fetch(`${API_BASE_URL}/get-recommendations`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           interests: selectedInterests,
-          location: location || "Unknown",
-          weather: weather?.condition || "Unknown",
+          location: location,
+          weather: weather?.condition,
         }),
-        credentials: 'include'  // Add credentials to include cookies
       });
   
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to get recommendations");
+        throw new Error("Network response was not ok");
       }
   
       const data = await response.json();
   
       // Transform API response into frontend-friendly format
       const transformedActivities = [
-        ...(data.recommendations.outdoor_activities || []),
-        ...(data.recommendations.indoor_activities || []),
-        ...(data.recommendations.local_events || []),
+        ...data.recommendations.outdoor_activities,
+        ...data.recommendations.indoor_activities,
+        ...data.recommendations.local_events,
       ].map((activity) => ({
         title: activity.name,
         category: activity.genre,
@@ -93,38 +85,12 @@ const DiscoverPage = () => {
     } catch (error) {
       console.error("Error generating activities:", error);
       setErrorMessage("Failed to generate activities. Please try again later.");
-      
-      // Add mock activities for testing if in development mode
-      if (process.env.NODE_ENV === 'development') {
-        setActivities([
-          {
-            title: "Local Art Exhibition",
-            category: "Arts & Crafts",
-            location: "Downtown Gallery",
-            weather: "Indoor",
-            description: "Explore local artists' exhibits featuring contemporary art pieces."
-          },
-          {
-            title: "Trail Hiking",
-            category: "Outdoors",
-            location: "Mountain Trail",
-            weather: "Sunny",
-            description: "A scenic 3-mile hiking trail with beautiful landscape views."
-          },
-          {
-            title: "Board Game Night",
-            category: "Gaming",
-            location: "Community Center",
-            weather: "Indoor",
-            description: "Join other gamers for a night of strategy and fun board games."
-          }
-        ]);
-        setHasGenerated(true);
-      }
+      setUserInterests([]); // Rollback UI update
     } finally {
       setIsLoading(false);
     }
-  };  
+  };
+  
 
   // Function to handle interest changes from InterestTags component
   const handleInterestsChange = (updatedInterests) => {
