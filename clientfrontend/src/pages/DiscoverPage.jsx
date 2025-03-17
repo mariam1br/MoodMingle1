@@ -16,7 +16,8 @@ const DiscoverPage = () => {
   const [hasGenerated, setHasGenerated] = useState(false);
   const [location, setLocation] = useState("");
   const [weather, setWeather] = useState(null);
-  const [error, setError] = useState("");
+  // We're defining errorMessage instead of error to make it clear this is for display
+  const [errorMessage, setErrorMessage] = useState("");
 
   // Load user interests if logged in
   useEffect(() => {
@@ -54,7 +55,7 @@ const DiscoverPage = () => {
         body: JSON.stringify({
           interests: selectedInterests,
           location: location, // Replace with dynamic location if available
-          weather: weather.condition // Replace with dynamic weather if available
+          weather: weather?.condition // Use optional chaining to avoid errors if weather is null
         }),
       });
 
@@ -81,6 +82,7 @@ const DiscoverPage = () => {
       setHasGenerated(true);
     } catch (error) {
       console.error('Error generating activities:', error);
+      setErrorMessage("Failed to generate activities. Please try again later.");
     } finally {
       setIsLoading(false);
     }
@@ -113,13 +115,13 @@ const DiscoverPage = () => {
             setLocation(response.data.location);
             setWeather(response.data.weather);
           } catch (err) {
-            setError("Failed to fetch weather data.");
+            setErrorMessage("Failed to fetch weather data.");
           }
         },
-        () => setError("Location access denied.")
+        () => setErrorMessage("Location access denied.")
       );
     } else {
-      setError("Geolocation is not supported.");
+      setErrorMessage("Geolocation is not supported.");
     }
   }, []);
 
@@ -147,6 +149,13 @@ const DiscoverPage = () => {
                 ? ` Your saved interests: ${userInterests.join(', ')}`
                 : ' Start adding interests to get personalized activity suggestions.'}
             </p>
+          </div>
+        )}
+        
+        {/* Display error message if any */}
+        {errorMessage && (
+          <div className="bg-red-50 rounded-xl p-4 mb-8 text-sm sm:text-base">
+            <p className="text-red-600">{errorMessage}</p>
           </div>
         )}
         
