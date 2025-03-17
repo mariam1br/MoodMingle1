@@ -1,29 +1,49 @@
 // src/context/SavedActivitiesContext.jsx
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import axios from "axios";
 import { useAuth } from './AuthContext';
 
 const SavedActivitiesContext = createContext(null);
 
+const API_BASE_URL = "http://localhost:5001";
+
 export const SavedActivitiesProvider = ({ children }) => {
   const [savedActivities, setSavedActivities] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
   
   // Load saved activities when user changes
   useEffect(() => {
-    if (user) {
-      // If user is logged in, try to load their saved activities
-      const userSavedActivities = localStorage.getItem(`savedActivities_${user.id}`);
-      if (userSavedActivities) {
-        setSavedActivities(JSON.parse(userSavedActivities));
-      } else {
-        // Reset to empty if no saved activities found for user
+    const fetchSavedActivities = async () => {
+      try {
+        if (!user || user.isGuest) {
+          setSavedActivities([]);
+          return;
+        }
+        setIsLoading(true);
+        const response = await axios.get(`${API_BASE_URL}/saved-activities`, {
+          withCredentials: true, // Important for session cookies
+        });
+        console.log("4...");
+
+        console.log("Saved activities response:", response.data);
+
+        if (response.data.success) {
+          setSavedActivities(response.data.activities);
+        } else {
+          console.error("Failed to fetch saved activities:", response.data.error);
+        }
+      } catch (error) {
+        console.error("Error fetching saved activities:", error);
         setSavedActivities([]);
+      } finally {
+        setIsLoading(false);
       }
-    } else {
-      // If no user (logged out), reset to empty
-      setSavedActivities([]);
-    }
+    };
+
+    fetchSavedActivities();
   }, [user]);
+
 
   // Save activities to localStorage whenever they change
   useEffect(() => {
@@ -66,7 +86,8 @@ export const SavedActivitiesProvider = ({ children }) => {
       saveActivity, 
       removeActivity,
       isActivitySaved,
-      clearAllActivities
+      clearAllActivities,
+      isLoading
     }}>
       {children}
     </SavedActivitiesContext.Provider>

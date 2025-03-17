@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
-from database.databaseConnection import db  # Ensure this is set up to connect to MySQL
+from database.databaseConnection import DatabaseConnection  # Ensure this is set up to connect to MySQL
 from database.databaseQueries import DatabaseQueries as dq  # Import your query class
 from LLMService.LLMService import create_prompt, query_gemini
 from WeatherService.googleapi import get_location, get_weather
@@ -142,6 +142,7 @@ def login():
         print(f"Login error: {str(e)}")
         traceback.print_exc()
         return jsonify({"success": False, "error": f"An error occurred during login: {str(e)}"}), 500
+    
 # User signup
 @app.route("/signup", methods=["POST"])
 def signup():
@@ -403,6 +404,134 @@ def get_saved_data():
 #         print(f"Error in get_recommendations: {str(e)}")
 #         db.disconnect()
 #         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
+@app.route("/saved-activities", methods=["GET"])
+def get_saved_activities():
+    if 'user' not in session:
+        return jsonify({"success": False, "error": "Not authenticated"}), 401
+
+    username = session["user"]["username"]
+    
+    try:
+        datab = DatabaseConnection(dbname='MoodMingle', user='moodmingle_user', password='team2', host='104.198.30.234', port=3306)
+        datab.connect()
+        db_queries = dq(datab.connection)
+        activities = db_queries.get_activities(username)
+        DatabaseConnection.disconnect(datab)
+        
+        # Convert database result into a list of dictionaries
+        if activities:
+            activities_list = [
+                {
+                    "title": activity[0],  # Assuming the name of the activity is stored in the first column
+                    "category": activity[1],
+                    "location": activity[2],
+                    "weather": activity[3],
+                    "description": activity[4],
+                }
+                for activity in activities
+            ]
+            return jsonify({"success": True, "activities": activities_list})
+        else:
+            return jsonify({"success": True, "activities": []})
+    
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+    
+
+@app.route("/save-activity", methods=["POST"])
+def save_activity():
+    if "user" not in session:
+        return jsonify({"success": False, "error": "Not authenticated"}), 401
+
+    username = session["user"]["username"]
+    data = request.json
+
+    # Extract activity details
+    title = data.get("title")
+    category = data.get("category")
+    location = data.get("location")
+    weather = data.get("weather")
+    description = data.get("description")
+
+    if not title or not category or not location or not weather or not description:
+        return jsonify({"success": False, "error": "Missing activity details"}), 400
+
+    try:
+        datab = DatabaseConnection(dbname="MoodMingle", user="moodmingle_user", password="team2", host="104.198.30.234", port=3306)
+        datab.connect()
+        db_queries = dq(datab.connection)
+
+        # Save activity in database
+        success = db_queries.save_activity(username, title, category, location, weather, description)
+        DatabaseConnection.disconnect(datab)
+
+        if success:
+            return jsonify({"success": True, "message": "Activity saved successfully"})
+        else:
+            return jsonify({"success": False, "error": "Failed to save activity"})
+    
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/remove-activity", methods=["POST"])
+def remove_activity():
+    if "user" not in session:
+        return jsonify({"success": False, "error": "Not authenticated"}), 401
+
+    username = session["user"]["username"]
+    data = request.json
+    title = data.get("title")
+
+    if not title:
+        return jsonify({"success": False, "error": "Missing activity title"}), 400
+
+    try:
+        datab = DatabaseConnection(dbname="MoodMingle", user="moodmingle_user", password="team2", host="104.198.30.234", port=3306)
+        datab.connect()
+        db_queries = dq(datab.connection)
+
+        # Delete the activity from the database
+        success = db_queries.delete_activity(username, title)
+        DatabaseConnection.disconnect(datab)
+
+        if success:
+            return jsonify({"success": True, "message": "Activity removed successfully"})
+        else:
+            return jsonify({"success": False, "error": "Failed to remove activity"})
+    
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/save-interests", methods=["POST"])
+def save_interests():
+    if "user" not in session:
+        return jsonify({"success": False, "error": "Not authenticated"}), 401
+
+    username = session["user"]["username"]
+    data = request.json
+    interests = data.get("interests", [])
+
+    if not interests:
+        return jsonify({"success": False, "error": "No interests provided"}), 400
+
+    try:
+        datab = DatabaseConnection(dbname="MoodMingle", user="moodmingle_user", password="team2", host="104.198.30.234", port=3306)
+        datab.connect()
+        db_queries = dq(datab.connection)
+
+        # Save user interests to the database
+        success = db_queries.save_preferences(username, interests)
+        DatabaseConnection.disconnect(datab)
+
+        if success:
+            return jsonify({"success": True, "message": "Interests saved successfully"})
+        else:
+            return jsonify({"success": False, "error": "Failed to save interests"})
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 
 if __name__ == "__main__":
     app.run(port=5001, debug=True)

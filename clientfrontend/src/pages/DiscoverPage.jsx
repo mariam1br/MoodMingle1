@@ -34,59 +34,60 @@ const DiscoverPage = () => {
       setHasGenerated(false);
       return;
     }
-
+  
     setIsLoading(true);
     setGeneratedInterests(selectedInterests);
-
-    // If logged in, save the interests to user profile
-    if (user) {
-      // Update both local state and context
-      setUserInterests(selectedInterests);
-      updateUserInterests(selectedInterests);
-    }
-
+  
     try {
-      // Make an API call to the deployed backend
-      const response = await fetch('http://127.0.0.1:5001/get-recommendations', {
-        method: 'POST',
+      if (user) {
+        // Save interests to the database
+        await axios.post("http://127.0.0.1:5001/save-interests", 
+          { interests: selectedInterests },
+          { withCredentials: true }
+        );
+      }
+  
+      // Fetch activity recommendations
+      const response = await fetch("http://127.0.0.1:5001/get-recommendations", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           interests: selectedInterests,
-          location: location, // Replace with dynamic location if available
-          weather: weather?.condition // Use optional chaining to avoid errors if weather is null
+          location: location,
+          weather: weather?.condition,
         }),
       });
-
+  
       if (!response.ok) {
-        throw new Error('Network response was not ok');
+        throw new Error("Network response was not ok");
       }
-
+  
       const data = await response.json();
-
-      // Transform the response into the format expected by the frontend
+  
+      // Transform API response into frontend-friendly format
       const transformedActivities = [
         ...data.recommendations.outdoor_activities,
         ...data.recommendations.indoor_activities,
-        ...data.recommendations.local_events
-      ].map(activity => ({
+        ...data.recommendations.local_events,
+      ].map((activity) => ({
         title: activity.name,
         category: activity.genre,
         location: activity.location,
         weather: activity.weather,
-        description: activity.description
+        description: activity.description,
       }));
-
+  
       setActivities(transformedActivities);
       setHasGenerated(true);
     } catch (error) {
-      console.error('Error generating activities:', error);
+      console.error("Error generating activities:", error);
       setErrorMessage("Failed to generate activities. Please try again later.");
     } finally {
       setIsLoading(false);
     }
-  };
+  };  
 
   // Function to handle interest changes from InterestTags component
   const handleInterestsChange = (updatedInterests) => {
