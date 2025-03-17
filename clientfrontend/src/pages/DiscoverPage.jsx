@@ -9,7 +9,7 @@ import axios from "axios";
 const API_BASE_URL = "http://localhost:5001"; // Ensure this matches your backend URL
 
 const DiscoverPage = () => {
-  const { user } = useAuth(); // Remove updateUserInterests from destructuring
+  const { user } = useAuth();
   const [activities, setActivities] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [generatedInterests, setGeneratedInterests] = useState([]);
@@ -22,14 +22,19 @@ const DiscoverPage = () => {
   // Load user interests if logged in
   useEffect(() => {
     if (user && user.interests) {
-      setUserInterests(user.interests);
+      // Ensure unique interests only when loading from user
+      const uniqueInterests = [...new Set(user.interests)];
+      setUserInterests(uniqueInterests);
     }
   }, [user]);
 
   const handleGenerateActivities = async (selectedInterests) => {
+    // Ensure we're working with unique interests
+    const uniqueInterests = [...new Set(selectedInterests)];
+    
     // Optimistically update UI
-    setGeneratedInterests(selectedInterests);
-    setUserInterests(selectedInterests);
+    setGeneratedInterests(uniqueInterests);
+    setUserInterests(uniqueInterests);
     setHasGenerated(false); // Reset previous results
     setIsLoading(true);
   
@@ -38,7 +43,7 @@ const DiscoverPage = () => {
         // Save interests to the database
         const response = await axios.post(
           `${API_BASE_URL}/save-interests`,
-          { interests: selectedInterests },
+          { interests: uniqueInterests },
           { withCredentials: true }
         );
   
@@ -55,7 +60,7 @@ const DiscoverPage = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          interests: selectedInterests,
+          interests: uniqueInterests,
           location: location,
           weather: weather?.condition,
         }),
@@ -91,7 +96,6 @@ const DiscoverPage = () => {
     }
   };
   
-
   // Function to handle interest changes from InterestTags component
   const handleInterestsChange = (updatedInterests) => {
     // Only update activities if we had previously generated them
@@ -100,6 +104,30 @@ const DiscoverPage = () => {
       setActivities([]);
       setGeneratedInterests([]);
       setHasGenerated(false);
+    }
+  };
+
+  // Custom handler for adding interests that prevents duplicates
+  const handleAddInterest = (interest) => {
+    // Normalize the interest by trimming and converting to lowercase for comparison
+    const normalizedInterest = interest.trim().toLowerCase();
+    
+    // Check if this interest already exists (case-insensitive comparison)
+    const isDuplicate = userInterests.some(
+      existingInterest => existingInterest.toLowerCase() === normalizedInterest
+    );
+    
+    if (!isDuplicate && normalizedInterest) {
+      // Use the original case of the interest, but prevent duplicates
+      document.dispatchEvent(new CustomEvent('addInterest', { detail: interest.trim() }));
+    } else if (isDuplicate) {
+      // Optionally show a message or notification that this is a duplicate
+      setErrorMessage("This interest is already in your list.");
+      
+      // Clear the error message after 3 seconds
+      setTimeout(() => {
+        setErrorMessage("");
+      }, 3000);
     }
   };
 
@@ -135,9 +163,7 @@ const DiscoverPage = () => {
       <div className="max-w-2xl mx-auto"> 
         <section className="bg-white rounded-xl shadow-sm p-4 sm:p-6 mb-8">
           <div className="flex flex-col space-y-4">
-            <SearchBar onAddInterest={(interest) => {
-              document.dispatchEvent(new CustomEvent('addInterest', { detail: interest }));
-            }} />
+            <SearchBar onAddInterest={handleAddInterest} />
             <InterestTags 
               onGenerateActivities={handleGenerateActivities}
               onInterestsChange={handleInterestsChange}

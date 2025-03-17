@@ -497,6 +497,84 @@ def save_interests():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+@app.route("/get-interests", methods=["GET"])
+def get_interests():
+    if "user" not in session:
+        return jsonify({"success": False, "error": "Not authenticated"}), 401
+
+    username = session["user"]["username"]
+
+    try:
+        datab = DatabaseConnection(dbname="MoodMingle", user="moodmingle_user", password="team2", host="104.198.30.234", port=3306)
+        datab.connect()
+        db_queries = dq(datab.connection)
+
+        # Fetch user interests from the database
+        interests = db_queries.get_preferences(username)
+        DatabaseConnection.disconnect(datab)
+
+        if interests is None:
+            return jsonify({"success": False, "error": "Failed to fetch interests"}), 500
+
+        return jsonify({"success": True, "interests": interests})
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/get-previous-interests", methods=["GET"])
+def get_previous_interests():
+    if "user" not in session:
+        return jsonify({"success": False, "error": "Not authenticated"}), 401
+    
+    username = session["user"]["username"]
+    
+    try:
+        datab = DatabaseConnection(dbname="MoodMingle", user="moodmingle_user", password="team2", host="104.198.30.234", port=3306)
+        datab.connect()
+        db_queries = dq(datab.connection)
+        
+        # Fetch previous interests for the user
+        # This assumes you have a method in your database queries class to get previous interests
+        previous_interests = db_queries.get_previous_interests(username)
+        
+        DatabaseConnection.disconnect(datab)
+        
+        if previous_interests is None:
+            return jsonify({"success": False, "error": "Failed to fetch previous interests"}), 500
+        
+        return jsonify({"success": True, "interests": previous_interests})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/remove-interest", methods=["POST"])
+def remove_interest():
+    if "user" not in session:
+        return jsonify({"success": False, "error": "Not authenticated"}), 401
+    
+    data = request.get_json()
+    if not data or "interest" not in data:
+        return jsonify({"success": False, "error": "Invalid request data"}), 400
+    
+    username = session["user"]["username"]
+    interest = data["interest"]
+    
+    try:
+        datab = DatabaseConnection(dbname="MoodMingle", user="moodmingle_user", password="team2", host="104.198.30.234", port=3306)
+        datab.connect()
+        db_queries = dq(datab.connection)
+        
+        # Remove the interest from the user's previous interests
+        # This assumes you have a method in your database queries class to remove an interest
+        success = db_queries.remove_interest(username, interest)
+        
+        DatabaseConnection.disconnect(datab)
+        
+        if not success:
+            return jsonify({"success": False, "error": "Failed to remove interest"}), 500
+        
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(port=5001, debug=True)

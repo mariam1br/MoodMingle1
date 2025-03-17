@@ -28,6 +28,9 @@ export const AuthProvider = ({ children }) => {
           // If there is a logged-in user, set the user and mark them as logged in
           setUser(fetchedUser);
           setIsLoggedIn(true);
+          
+          // Fetch user interests immediately after login confirmation
+          fetchUserInterests();
         } else {
           // If the user is a guest or none exists, ensure logged out state
           setUser(null);
@@ -45,6 +48,35 @@ export const AuthProvider = ({ children }) => {
     fetchUser();
   }, []);
 
+  const fetchUserInterests = async () => {
+    try {
+      console.log('Fetching interests for user');
+      
+      const response = await axios.get(`${API_BASE_URL}/get-interests`, {
+        withCredentials: true
+      });
+      
+      console.log('Fetched interests response:', response.data);
+      
+      if (response.data.success) {
+        setUser((prevUser) => ({
+          ...prevUser,
+          interests: response.data.interests
+        }));
+        return { success: true, interests: response.data.interests };
+      } else {
+        console.error('Failed to fetch interests:', response.data.error);
+        return { success: false, error: response.data.error };
+      }
+    } catch (error) {
+      console.error('Error fetching interests:', error);
+      return { 
+        success: false, 
+        error: error.response?.data?.error || "Failed to fetch interests" 
+      };
+    }
+  };
+
   const login = async (credentials) => {
     try {
       console.log('Attempting login with:', credentials);
@@ -61,6 +93,10 @@ export const AuthProvider = ({ children }) => {
       if (response.data.success) {
         setUser(response.data.user);
         setIsLoggedIn(true);
+        
+        // Fetch interests immediately after successful login
+        await fetchUserInterests();
+        
         return { success: true, user: response.data.user };
       } else {
         return { success: false, error: response.data.error || "Login failed" };
@@ -94,6 +130,10 @@ export const AuthProvider = ({ children }) => {
         // Auto-login after successful signup
         setUser(response.data.user);
         setIsLoggedIn(true);
+        
+        // Fetch interests immediately after successful signup
+        await fetchUserInterests();
+        
         return { success: true, user: response.data.user };
       } else {
         return { success: false, error: response.data.error || "Signup failed" };
@@ -125,34 +165,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const updateUserInterests = async (interests) => {
-    if (user) {
-      try {
-        console.log('Updating interests:', interests);
-        
-        const response = await axios.put(`${API_BASE_URL}/user/interests`, { 
-          username: user.username,
-          interests 
-        }, {
-          withCredentials: true
-        });
-        
-        console.log('Update interests response:', response.data);
-        
-        if (response.data.success) {
-          setUser((prevUser) => ({ ...prevUser, interests }));
-          return { success: true };
-        }
-        return { success: false, error: response.data.error };
-      } catch (error) {
-        console.error('Error updating interests', error);
-        console.error('Error response:', error.response?.data);
-        return { success: false, error: "Failed to update interests" };
-      }
+  // Updated to use the fetching function
+  const updateUserInterests = async () => {
+    if (isLoggedIn) {
+      return await fetchUserInterests();
     }
     return { success: false, error: "User not logged in" };
   };
-
+    
   const updateUserProfile = async (profileData) => {
     if (user) {
       try {

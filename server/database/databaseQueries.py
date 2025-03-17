@@ -209,3 +209,47 @@ class DatabaseQueries:
         except mysql.connector.Error as e:
             print(f"Error deleting activity {activity_name} for {username}: {e}")
             return False
+
+    def get_previous_interests(self, username):
+        try:
+            cursor = self.connection.cursor()
+            
+            # Query to get user's previous interests
+            # This assumes you have a user_interests table with username and interest columns
+            query = """
+            SELECT interest FROM user_interests 
+            WHERE username = %s
+            ORDER BY created_at DESC
+            """
+            
+            cursor.execute(query, (username,))
+            results = cursor.fetchall()
+            cursor.close()
+            
+            # Extract interests from query results
+            interests = [row[0] for row in results]
+            
+            return interests
+        except Exception as e:
+            print(f"Error getting previous interests: {e}")
+            return None
+
+    def remove_interest(self, username, interest):
+        try:
+            cursor = self.connection.cursor()
+            
+            # Query to delete the specified interest
+            query = """
+            DELETE FROM user_interests 
+            WHERE username = %s AND interest = %s
+            """
+            
+            cursor.execute(query, (username, interest))
+            self.connection.commit()
+            cursor.close()
+            
+            return True
+        except Exception as e:
+            print(f"Error removing interest: {e}")
+            self.connection.rollback()
+            return False
