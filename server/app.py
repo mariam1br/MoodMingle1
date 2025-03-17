@@ -328,21 +328,25 @@ def execute_sql():
 # API Endpoint to Get Recommendations
 @app.route("/get-recommendations", methods=["POST"])
 def get_recommendations():
-    data = request.json
-    interests = data.get("interests", [])
-    location = data.get("location", "Unknown")
-    weather = data.get("weather", "Unknown")
-    print(location, weather)
+    try:
+        data = request.json
+        interests = data.get("interests", [])
+        location = data.get("location", "Unknown")
+        weather = data.get("weather", "Unknown")
+        print(f"Generating recommendations for: Location: {location}, Weather: {weather}, Interests: {interests}")
 
-    if not interests or not location:
-        return jsonify({"error": "Interests and location are required."}), 400
+        if not interests:
+            return jsonify({"error": "Interests are required."}), 400
 
-    # Generate prompt and query LLM
-    prompt = create_prompt(interests, location, weather)
-    recommendations = query_gemini(prompt)
+        # Generate prompt and query LLM
+        prompt = create_prompt(interests, location, weather)
+        recommendations = query_gemini(prompt)
 
-    return jsonify({"recommendations": recommendations})
-
+        return jsonify({"recommendations": recommendations})
+    except Exception as e:
+        print(f"Error in get_recommendations: {str(e)}")
+        traceback.print_exc()
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
 @app.route("/get_weather", methods=["POST"])
 def weather():
@@ -365,45 +369,6 @@ def weather():
 def get_saved_data():
     return jsonify({"location": latest_location, "weather": latest_weather})
 
-
-# def get_recommendations():
-#     try:
-#         # Get location and weather from the frontend request
-#         data = request.json
-#         location = data.get("location", "Unknown")
-#         weather = data.get("weather", "Unknown")
-#         # location = get_weather()
-#         # weather = get_location()
-#         preferences = data.get("preferences", [])
-
-#         # Check if a user is logged in
-#         if 'user' in session:
-#             current_user = session['user']
-#             username = current_user.get("username")
-
-#             # Connect to the database to fetch user preferences
-#             db.connect()
-#             dq_query = dq(db.connection)
-
-#             # Fetch user preferences from DB if available
-#             user_preferences = dq_query.get_preferences(username)
-#             db.disconnect()
-
-#             # If preferences exist in DB, use them
-#             if user_preferences and user_preferences[0][0]:
-#                 preferences = user_preferences[0][0].split(",")
-
-#         # Generate the prompt and query Gemini
-#         prompt = create_prompt(preferences, location, weather)
-#         recommendations = query_gemini(prompt)
-
-#         # Return recommendations
-#         return jsonify({"recommendations": recommendations})
-
-#     except Exception as e:
-#         print(f"Error in get_recommendations: {str(e)}")
-#         db.disconnect()
-#         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
 @app.route("/saved-activities", methods=["GET"])
 def get_saved_activities():
@@ -522,16 +487,28 @@ def save_interests():
 
         # Save user interests to the database
         success = db_queries.save_preferences(username, interests)
-        DatabaseConnection.disconnect(datab)
-
+        
+        # Regardless of success, make sure we disconnect from the database
+        try:
+            DatabaseConnection.disconnect(datab)
+        except:
+            pass
+            
         if success:
+            # Update user session with new interests
+            if "user" in session:
+                current_user = session["user"]
+                current_user["interests"] = interests
+                session["user"] = current_user
+                
             return jsonify({"success": True, "message": "Interests saved successfully"})
         else:
-            return jsonify({"success": False, "error": "Failed to save interests"})
+            return jsonify({"success": False, "error": "Failed to save interests"}), 500
 
     except Exception as e:
+        print(f"Error saving interests: {str(e)}")
+        traceback.print_exc()
         return jsonify({"success": False, "error": str(e)}), 500
-
 
 if __name__ == "__main__":
     app.run(port=5001, debug=True)

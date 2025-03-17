@@ -328,7 +328,7 @@ const SignInPage = () => {
               <>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Username
+                    Username/Email
                   </label>
                   <div className="relative">
                     <User className="absolute left-3 top-2.5 text-gray-400" size={20} />

@@ -6,9 +6,8 @@ import ActivityCard from '../components/activities/ActivityCard';
 import { useAuth } from '../context/AuthContext';
 import axios from "axios";
   
-
 const DiscoverPage = () => {
-  const { user, updateUserInterests } = useAuth();
+  const { user } = useAuth(); // Remove updateUserInterests from destructuring
   const [activities, setActivities] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [generatedInterests, setGeneratedInterests] = useState([]);
@@ -16,7 +15,6 @@ const DiscoverPage = () => {
   const [hasGenerated, setHasGenerated] = useState(false);
   const [location, setLocation] = useState("");
   const [weather, setWeather] = useState(null);
-  // We're defining errorMessage instead of error to make it clear this is for display
   const [errorMessage, setErrorMessage] = useState("");
 
   // Load user interests if logged in
@@ -36,15 +34,24 @@ const DiscoverPage = () => {
     }
   
     setIsLoading(true);
+    setErrorMessage(""); // Clear any previous error messages
     setGeneratedInterests(selectedInterests);
+    
+    // Update userInterests when generating activities
+    setUserInterests(selectedInterests);
   
     try {
       if (user) {
-        // Save interests to the database
-        await axios.post("http://127.0.0.1:5001/save-interests", 
-          { interests: selectedInterests },
-          { withCredentials: true }
-        );
+        try {
+          // Save interests to the database
+          await axios.post("http://127.0.0.1:5001/save-interests", 
+            { interests: selectedInterests },
+            { withCredentials: true }
+          );
+        } catch (saveError) {
+          console.error("Error saving interests:", saveError);
+          // Continue with recommendations even if saving interests fails
+        }
       }
   
       // Fetch activity recommendations
@@ -55,22 +62,24 @@ const DiscoverPage = () => {
         },
         body: JSON.stringify({
           interests: selectedInterests,
-          location: location,
-          weather: weather?.condition,
+          location: location || "Unknown",
+          weather: weather?.condition || "Unknown",
         }),
+        credentials: 'include'  // Add credentials to include cookies
       });
   
       if (!response.ok) {
-        throw new Error("Network response was not ok");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to get recommendations");
       }
   
       const data = await response.json();
   
       // Transform API response into frontend-friendly format
       const transformedActivities = [
-        ...data.recommendations.outdoor_activities,
-        ...data.recommendations.indoor_activities,
-        ...data.recommendations.local_events,
+        ...(data.recommendations.outdoor_activities || []),
+        ...(data.recommendations.indoor_activities || []),
+        ...(data.recommendations.local_events || []),
       ].map((activity) => ({
         title: activity.name,
         category: activity.genre,
@@ -84,6 +93,34 @@ const DiscoverPage = () => {
     } catch (error) {
       console.error("Error generating activities:", error);
       setErrorMessage("Failed to generate activities. Please try again later.");
+      
+      // Add mock activities for testing if in development mode
+      if (process.env.NODE_ENV === 'development') {
+        setActivities([
+          {
+            title: "Local Art Exhibition",
+            category: "Arts & Crafts",
+            location: "Downtown Gallery",
+            weather: "Indoor",
+            description: "Explore local artists' exhibits featuring contemporary art pieces."
+          },
+          {
+            title: "Trail Hiking",
+            category: "Outdoors",
+            location: "Mountain Trail",
+            weather: "Sunny",
+            description: "A scenic 3-mile hiking trail with beautiful landscape views."
+          },
+          {
+            title: "Board Game Night",
+            category: "Gaming",
+            location: "Community Center",
+            weather: "Indoor",
+            description: "Join other gamers for a night of strategy and fun board games."
+          }
+        ]);
+        setHasGenerated(true);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -116,6 +153,7 @@ const DiscoverPage = () => {
             setLocation(response.data.location);
             setWeather(response.data.weather);
           } catch (err) {
+            console.error("Weather fetch error:", err);
             setErrorMessage("Failed to fetch weather data.");
           }
         },
@@ -208,6 +246,5 @@ const DiscoverPage = () => {
     </div>
   );
 };
-
 
 export default DiscoverPage;
