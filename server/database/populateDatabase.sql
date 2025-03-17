@@ -3,7 +3,7 @@ INSERT INTO MoodMingle.Users (username, name, email, password) VALUES
 ('alice123', 'alice', 'alice@example.com', 'hashed_password_1'),
 ('bob99', 'bob', 'bob@example.com', 'hashed_password_2'),
 ('charlie_yt', 'charlie', 'charlie@example.com', 'hashed_password_3'),
-('hanahassan', 'hana' 'hanahassan@example.com', 'hashed_password_3'),
+('hanahassan', 'hana', 'hanahassan@example.com', 'hashed_password_3'),
 ('daveX', 'dave', 'dave@example.com', 'hashed_password_4'),
 ('emma_writes', 'emma', 'emma@example.com', 'hashed_password_5');
 

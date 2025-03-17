@@ -1,4 +1,3 @@
-// src/pages/SignInPage.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, MapPin, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
@@ -6,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 
 const SignInPage = () => {
   const [isSignIn, setIsSignIn] = useState(true);
-  const { login, signup, users } = useAuth();
+  const { login, signup } = useAuth();
   const navigate = useNavigate();
   
   const [formData, setFormData] = useState({
@@ -89,76 +88,60 @@ const SignInPage = () => {
     return true;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
     setSuccess('');
     
-    if (isSignIn) {
-      // Sign In logic
-      const loginData = {
-        // Support login with either email or username
-        email: formData.emailOrUsername,
-        username: formData.emailOrUsername,
-        password: formData.password
-      };
-      
-      const result = login(loginData);
-      
-      if (result.success) {
-        navigate('/');
-      } else {
-        setError(result.error || 'Invalid credentials');
-      }
-    } else {
-      // Sign Up logic
-      if (validateSignUp()) {
-        const result = signup({
-          username: formData.username,
-          email: formData.email,
-          password: formData.password,
-          displayName: formData.displayName,
-          location: formData.location
+    try {
+      if (isSignIn) {
+        // Sign In logic
+        console.log('Attempting login with:', formData.emailOrUsername);
+        const result = await login({
+          emailOrUsername: formData.emailOrUsername,
+          password: formData.password
         });
         
         if (result.success) {
-          setSuccess('Account created successfully! Redirecting...');
-          // Allow the success message to display briefly before redirecting
+          setSuccess('Login successful! Redirecting...');
           setTimeout(() => {
             navigate('/');
-          }, 1500);
+          }, 1000);
         } else {
-          setError(result.error || 'Failed to create account');
+          setError(result.error || 'Invalid credentials');
+        }
+      } else {
+        // Sign Up logic
+        if (validateSignUp()) {
+          const result = await signup({
+            username: formData.username,
+            email: formData.email,
+            password: formData.password,
+            displayName: formData.displayName,
+            location: formData.location
+          });
+          
+          if (result.success) {
+            setSuccess('Account created successfully! Redirecting...');
+            setTimeout(() => {
+              navigate('/');
+            }, 1500);
+          } else {
+            setError(result.error || 'Failed to create account');
+          }
         }
       }
+    } catch (err) {
+      setError('An unexpected error occurred. Please try again.');
+      console.error("Form submission error:", err);
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   const handleGuestAccess = () => {
     navigate('/');
-  };
-
-  // Helper to display available test accounts
-  const showTestAccounts = () => {
-    if (isSignIn && !error) {
-      return (
-        <div className="mt-2 text-sm text-gray-500">
-          <p>Test accounts:</p>
-          <ul className="list-disc pl-5">
-            {users.slice(0, 2).map(user => (
-              <li key={user.id}>
-                Username: <strong>{user.username}</strong> or Email: <strong>{user.email}</strong> 
-                <br />Password: <strong>{user.password}</strong>
-              </li>
-            ))}
-          </ul>
-        </div>
-      );
-    }
-    return null;
   };
 
   // Toggle between sign in and sign up modes
@@ -345,16 +328,16 @@ const SignInPage = () => {
               <>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email or Username
+                    Username
                   </label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-2.5 text-gray-400" size={20} />
+                    <User className="absolute left-3 top-2.5 text-gray-400" size={20} />
                     <input
                       type="text"
                       name="emailOrUsername"
                       value={formData.emailOrUsername}
                       onChange={handleChange}
-                      placeholder="Enter email or username"
+                      placeholder="Enter your username"
                       className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                     />
                   </div>
@@ -383,37 +366,19 @@ const SignInPage = () => {
                     </button>
                   </div>
                 </div>
-                
-                {/* Test account information */}
-                {showTestAccounts()}
-                
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center">
-                    <input 
-                      type="checkbox" 
-                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500" 
-                    />
-                    <span className="ml-2 text-sm text-gray-600">Remember me</span>
-                  </label>
-                  <button 
-                    type="button" 
-                    className="text-sm text-purple-600 hover:text-purple-700"
-                  >
-                    Forgot password?
-                  </button>
-                </div>
               </>
             )}
-            
-            <button
-              type="submit"
-              disabled={isLoading}
-              className={`w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors ${
-                isLoading ? 'opacity-70 cursor-not-allowed' : ''
-              }`}
-            >
-              {isLoading ? 'Processing...' : isSignIn ? 'Sign In' : 'Create Account'}
-            </button>
+            <div className="mt-6">
+              <button 
+                type="submit" 
+                disabled={isLoading} 
+                className={`w-full py-2 text-white bg-purple-600 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                  isLoading ? 'opacity-70 cursor-not-allowed' : ''
+                }`}
+              >
+                {isLoading ? 'Processing...' : isSignIn ? 'Sign In' : 'Create Account'}
+              </button>
+            </div>
           </form>
           
           {/* Divider */}

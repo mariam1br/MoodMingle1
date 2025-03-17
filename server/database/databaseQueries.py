@@ -53,17 +53,35 @@ class DatabaseQueries:
             return False
 
     # Check if user exists (Returns True/False)
-    def user_exists(self, username, password):
+    # def user_exists(self, username, password):
+    #     query = """
+    #     SELECT * FROM Users WHERE username = %s AND password = %s
+    #     """
+    #     try:
+    #         self.cursor.execute(query, (username, password))
+    #         return self.cursor.fetchone()[0] > 0
+    #     except mysql.connector.Error as e:
+    #         print(f"Error checking user existence: {e}")
+    #         return False
+    def user_exists_2(self, username, password):
         query = """
-        SELECT COUNT(*) FROM Users WHERE username = %s AND password = %s
+        SELECT username, password FROM Users WHERE username = %s
         """
         try:
-            self.cursor.execute(query, (username, password))
-            return self.cursor.fetchone()[0] > 0
+            print(f"Executing query for username = {username}")
+            self.cursor.execute(query, (username,))
+            result = self.cursor.fetchone()
+            
+            if result:
+                print(f"User found: {result[0]}")
+                return result  # Returns (username, password)
+            else:
+                print("No matching user found")
+                return None
         except mysql.connector.Error as e:
-            print(f"Error checking user existence: {e}")
-            return False
-
+            print(f"Error fetching user credentials: {e}")
+            return None
+        
     # Delete user (Deletes user and cascades Preferences/Activities)
     def delete_user(self, username, password):
         query = """
