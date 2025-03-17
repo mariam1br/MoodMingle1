@@ -46,7 +46,7 @@ const DiscoverPage = () => {
 
     try {
       // Make an API call to the deployed backend
-      const response = await fetch('http://127.0.0.1:5000/get-recommendations', {
+      const response = await fetch('http://127.0.0.1:5001/get-recommendations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -105,7 +105,7 @@ const DiscoverPage = () => {
           const { latitude, longitude } = position.coords;
 
           try {
-            const response = await axios.post("http://127.0.0.1:5000/get_weather", {
+            const response = await axios.post("http://127.0.0.1:5001/get_weather", {
               latitude,
               longitude,
             });
