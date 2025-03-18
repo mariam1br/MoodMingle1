@@ -578,7 +578,7 @@ def remove_interest():
         if interest not in current_interests:
             return jsonify({"success": False, "error": "Interest not found"}), 404
 
-        success = db_queries.remove_interest(username, interest)
+        success = db_queries.delete_preference(username, interest)
 
         DatabaseConnection.disconnect(datab)
 

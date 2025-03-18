@@ -14,6 +14,7 @@ const AccountPage = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const [showMobileTabMenu, setShowMobileTabMenu] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [userInterests, setUserInterests] = useState(user?.interests || []);
 
   // Move all hooks to the top level before any conditional returns
   useEffect(() => {
@@ -84,18 +85,37 @@ const AccountPage = () => {
     setIsDeleting(!isDeleting);
   };
 
-  const handleDeleteInterest = (interestToDelete) => {
-    // Here you would implement the actual deletion logic
-    // For example, you might call an API or update context
+  const handleDeleteInterest = async (interestToDelete) => {
     console.log(`Deleting interest: ${interestToDelete}`);
-    
-    // This is a placeholder - you'd need to implement the actual update logic
-    // For example:
-    // updateUser({
-    //   ...user,
-    //   interests: user.interests.filter(interest => interest !== interestToDelete)
-    // });
+  
+    try {
+      const response = await fetch("http://localhost:5001/remove-interest", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // Keep the session alive
+        body: JSON.stringify({ interest: interestToDelete }),
+      });
+  
+      const data = await response.json();
+  
+      if (!response.ok) {
+        console.error("Failed to remove interest:", data.error);
+        alert(`Error: ${data.error}`);
+        return;
+      }
+  
+      console.log("Interest removed successfully:", data);
+  
+      // Update UI state after a successful backend response
+      setUserInterests((prev) => prev.filter((interest) => interest !== interestToDelete));
+    } catch (error) {
+      console.error("Error removing interest:", error);
+      alert("Something went wrong. Please try again.");
+    }
   };
+  
 
   const ProfileSection = () => (
     <div className="space-y-6">
@@ -189,14 +209,14 @@ const AccountPage = () => {
   const InterestsSection = () => (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Your Interests</h2>
-      {user?.interests && user.interests.length > 0 ? (
+      {userInterests.length > 0 ? (
         <div>
           <div className="flex flex-wrap gap-2 mb-6">
-            {user.interests.map((interest, index) => (
+            {userInterests.map((interest, index) => (
               <span
                 key={index}
                 className={`bg-purple-100 text-purple-600 px-3 py-1 rounded-full text-sm flex items-center ${
-                  isDeleting ? 'wiggle-animation' : ''
+                  isDeleting ? "wiggle-animation" : ""
                 }`}
               >
                 {interest}
@@ -216,20 +236,20 @@ const AccountPage = () => {
           </p>
           <div className="flex flex-wrap gap-3 mt-4">
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate("/")}
               className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
             >
               Add Interests
             </button>
             <button
-              onClick={toggleDeleteMode}
+              onClick={() => setIsDeleting(!isDeleting)}
               className={`px-4 py-2 rounded-lg transition-colors ${
                 isDeleting
-                  ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  : 'bg-purple-600 text-white hover:bg-purple-700'
+                  ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  : "bg-purple-600 text-white hover:bg-purple-700"
               }`}
             >
-              {isDeleting ? 'Done' : 'Delete Interests'}
+              {isDeleting ? "Done" : "Delete Interests"}
             </button>
           </div>
         </div>
@@ -240,7 +260,7 @@ const AccountPage = () => {
             Adding interests helps us recommend activities that match your preferences.
           </p>
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate("/")}
             className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
           >
             Add Interests
