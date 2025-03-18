@@ -1,4 +1,3 @@
-// src/components/activities/ActivityCard.jsx
 import React, { useState } from 'react';
 import { MapPin, Sun, Heart } from 'lucide-react';
 import axios from "axios";
@@ -7,12 +6,16 @@ import ActivityDetailsModal from './ActivityDetails';
 
 const API_BASE_URL = "http://localhost:5001"; // Ensure this matches your backend URL
 
-
 const ActivityCard = ({ activity }) => {
   const { title, category, location, weather, description } = activity;
   const { saveActivity, removeActivity, isActivitySaved } = useSavedActivities();
   const isSaved = isActivitySaved(title);
   const [showDetails, setShowDetails] = useState(false);
+
+  // Truncate description to 100 characters and add ellipsis if needed
+  const truncatedDescription = description.length > 100 
+    ? `${description.substring(0, 100)}...` 
+    : description;
 
   const handleSaveToggle = async () => {
     // Optimistically update UI
@@ -74,8 +77,8 @@ const ActivityCard = ({ activity }) => {
 
   return (
     <>
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="p-6">
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden h-full flex flex-col">
+        <div className="p-6 flex flex-col flex-grow">
           <div className="flex items-start justify-between">
             <div>
               <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
@@ -94,16 +97,16 @@ const ActivityCard = ({ activity }) => {
               />
             </button>
           </div>
-          <div className="mt-4 space-y-2">
+          <div className="mt-4 space-y-2 flex-grow">
             <div className="flex items-center text-sm text-gray-500">
-              <MapPin size={16} className="mr-2" />
+              <MapPin size={16} className="mr-2 flex-shrink-0" />
               {location}
             </div>
             <div className="flex items-center text-sm text-gray-500">
-              <Sun size={16} className="mr-2" />
+              <Sun size={16} className="mr-2 flex-shrink-0" />
               {weather}
             </div>
-            <p className="text-sm text-gray-600 mt-2">{description}</p>
+            <p className="text-sm text-gray-600 mt-2">{truncatedDescription}</p>
           </div>
           <button 
             className="mt-4 w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors"
