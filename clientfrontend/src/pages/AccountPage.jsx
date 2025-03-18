@@ -163,7 +163,7 @@ const AccountPage = () => {
           <User size={32} className="text-purple-600" />
         </div>
         <div className="text-center sm:text-left">
-          <h2 className="text-xl font-semibold">{user?.displayName || 'User Name'}</h2>
+          <h2 className="text-xl font-semibold">{user?.displayName ||user.name || user.username || 'User Name'}</h2>
           <p className="text-gray-500">{user?.email || 'email@example.com'}</p>
         </div>
       </div>
