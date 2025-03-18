@@ -1,9 +1,8 @@
-// src/pages/AccountPage.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSavedActivities } from '../context/SavedActivitiesContext';
-import { User, Heart, Settings, LogOut, ChevronDown } from 'lucide-react';
+import { User, Heart, Settings, LogOut, ChevronDown, X } from 'lucide-react';
 import AccountSettings from '../components/account/AccountSettings';
 import ActivityCard from '../components/activities/ActivityCard';
 
@@ -13,8 +12,46 @@ const AccountPage = () => {
   const { savedActivities } = useSavedActivities();
   const [activeTab, setActiveTab] = useState('profile');
   const [showMobileTabMenu, setShowMobileTabMenu] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  // Redirect to login if not logged in
+  // Add custom CSS for iPhone-like wiggle animation
+  useEffect(() => {
+    if (isDeleting) {
+      // Add the keyframes and animation class only when in delete mode
+      const style = document.createElement('style');
+      style.id = 'wiggle-animation-style';
+      style.innerHTML = `
+        @keyframes wiggle {
+          0% { transform: rotate(0deg); }
+          25% { transform: rotate(-1deg); }
+          50% { transform: rotate(0deg); }
+          75% { transform: rotate(1deg); }
+          100% { transform: rotate(0deg); }
+        }
+        .wiggle-animation {
+          animation: wiggle 0.2s infinite;
+          animation-timing-function: ease-in-out;
+        }
+      `;
+      document.head.appendChild(style);
+    } else {
+      // Remove the style when not in delete mode
+      const existingStyle = document.getElementById('wiggle-animation-style');
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+    }
+
+    // Cleanup on component unmount
+    return () => {
+      const existingStyle = document.getElementById('wiggle-animation-style');
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+    };
+  }, [isDeleting]);
+
+  // Redirect to login if not logged in - MOVED AFTER ALL HOOKS
   if (!user) {
     navigate('/signin');
     return null;
@@ -31,6 +68,23 @@ const AccountPage = () => {
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     setShowMobileTabMenu(false);
+  };
+
+  const toggleDeleteMode = () => {
+    setIsDeleting(!isDeleting);
+  };
+
+  const handleDeleteInterest = (interestToDelete) => {
+    // Here you would implement the actual deletion logic
+    // For example, you might call an API or update context
+    console.log(`Deleting interest: ${interestToDelete}`);
+    
+    // This is a placeholder - you'd need to implement the actual update logic
+    // For example:
+    // updateUser({
+    //   ...user,
+    //   interests: user.interests.filter(interest => interest !== interestToDelete)
+    // });
   };
 
   const ProfileSection = () => (
@@ -131,21 +185,43 @@ const AccountPage = () => {
             {user.interests.map((interest, index) => (
               <span
                 key={index}
-                className="bg-purple-100 text-purple-600 px-3 py-1 rounded-full text-sm flex items-center"
+                className={`bg-purple-100 text-purple-600 px-3 py-1 rounded-full text-sm flex items-center ${
+                  isDeleting ? 'wiggle-animation' : ''
+                }`}
               >
                 {interest}
+                {isDeleting && (
+                  <button
+                    onClick={() => handleDeleteInterest(interest)}
+                    className="ml-2 bg-purple-200 hover:bg-purple-300 rounded-full p-1 text-purple-600 transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
               </span>
             ))}
           </div>
           <p className="text-gray-600">
             These interests are used to generate personalized activity recommendations for you.
           </p>
-          <button
-            onClick={() => navigate('/')}
-            className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-          >
-            Update Interests
-          </button>
+          <div className="flex flex-wrap gap-3 mt-4">
+            <button
+              onClick={() => navigate('/')}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              Add Interests
+            </button>
+            <button
+              onClick={toggleDeleteMode}
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                isDeleting
+                  ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  : 'bg-purple-600 text-white hover:bg-purple-700'
+              }`}
+            >
+              {isDeleting ? 'Done' : 'Delete Interests'}
+            </button>
+          </div>
         </div>
       ) : (
         <div className="bg-white p-8 rounded-lg shadow-sm text-center">
