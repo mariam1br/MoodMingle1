@@ -1,3 +1,4 @@
+// src/pages/AccountPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -8,13 +9,13 @@ import ActivityCard from '../components/activities/ActivityCard';
 
 const AccountPage = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading } = useAuth();
   const { savedActivities } = useSavedActivities();
   const [activeTab, setActiveTab] = useState('profile');
   const [showMobileTabMenu, setShowMobileTabMenu] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Add custom CSS for iPhone-like wiggle animation
+  // Move all hooks to the top level before any conditional returns
   useEffect(() => {
     if (isDeleting) {
       // Add the keyframes and animation class only when in delete mode
@@ -51,7 +52,16 @@ const AccountPage = () => {
     };
   }, [isDeleting]);
 
-  // Redirect to login if not logged in - MOVED AFTER ALL HOOKS
+  // Handle authentication loading state
+  if (isLoading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8 flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-700"></div>
+      </div>
+    );
+  }
+
+  // Redirect if not authenticated
   if (!user) {
     navigate('/signin');
     return null;

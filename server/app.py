@@ -1,3 +1,4 @@
+#app.py
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 from database.databaseConnection import DatabaseConnection  # Ensure this is set up to connect to MySQL

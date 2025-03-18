@@ -1,3 +1,4 @@
+// src/pages/SignInPage.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, MapPin, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
