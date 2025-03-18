@@ -104,8 +104,8 @@ def login():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Query to get user by username - only use columns that actually exist
-        query = "SELECT username, password, email FROM Users WHERE username = %s"
+        # Query to get user by username - now including createdAT
+        query = "SELECT username, password, email, createdAT FROM Users WHERE username = %s"
         print(f"Executing query: {query} with username={username}")
         cursor.execute(query, (username,))
         user_data = cursor.fetchone()
@@ -114,10 +114,19 @@ def login():
         
         # Check if user exists and password matches
         if user_data and user_data[1] == password:  # Plain text comparison for now
+            # Format the date nicely if it exists
+            created_at = user_data[3]
+            if created_at:
+                # Format date as "Month Year" (e.g., "March 2024")
+                member_since = created_at.strftime("%B %Y")
+            else:
+                member_since = "Unknown"
+                
             user_obj = {
                 "username": user_data[0],
                 "displayName": user_data[0],  # Use username as displayName since name column doesn't exist
-                "email": user_data[2]
+                "email": user_data[2],
+                "memberSince": member_since
             }
             
             # Store in session
@@ -217,6 +226,55 @@ def update_profile():
         return jsonify({"success": False, "error": f"An error occurred updating profile: {str(e)}"}), 500
 
 
+@app.route("/user-details", methods=["GET"])
+def get_user_details():
+    if "user" not in session:
+        return jsonify({"success": False, "error": "Not authenticated"}), 401
+
+    username = session["user"]["username"]
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Query to get user details including creation date
+        query = "SELECT username, email, createdAT FROM Users WHERE username = %s"
+        cursor.execute(query, (username,))
+        user_data = cursor.fetchone()
+        
+        if not user_data:
+            cursor.close()
+            conn.close()
+            return jsonify({"success": False, "error": "User not found"}), 404
+            
+        # Format the date nicely
+        from datetime import datetime
+        created_at = user_data[2]
+        if created_at:
+            # Format date as "Month Year" (e.g., "March 2024")
+            member_since = created_at.strftime("%B %Y")
+        else:
+            member_since = "Unknown"
+            
+        # Create user details object
+        user_details = {
+            "username": user_data[0],
+            "email": user_data[1],
+            "memberSince": member_since
+        }
+        
+        # Update the session with member since info
+        session["user"]["memberSince"] = member_since
+        
+        cursor.close()
+        conn.close()
+        return jsonify({"success": True, "userDetails": user_details})
+        
+    except Exception as e:
+        print(f"Error fetching user details: {str(e)}")
+        traceback.print_exc()
+        return jsonify({"success": False, "error": f"An error occurred: {str(e)}"}), 500
+    
 # Get current logged-in user
 @app.route("/current-user", methods=["GET"])
 def current_user():

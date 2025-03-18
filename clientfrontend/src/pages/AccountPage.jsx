@@ -3,9 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSavedActivities } from '../context/SavedActivitiesContext';
-import { User, Heart, Settings, LogOut, ChevronDown, X } from 'lucide-react';
+import { User, Heart, Settings, LogOut, ChevronDown, X, Calendar } from 'lucide-react';
 import AccountSettings from '../components/account/AccountSettings';
 import ActivityCard from '../components/activities/ActivityCard';
+import axios from 'axios';
+
+const API_BASE_URL = "http://localhost:5001";
 
 const AccountPage = () => {
   const navigate = useNavigate();
@@ -15,6 +18,35 @@ const AccountPage = () => {
   const [showMobileTabMenu, setShowMobileTabMenu] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [userInterests, setUserInterests] = useState(user?.interests || []);
+  const [memberSince, setMemberSince] = useState('');
+
+  // Fetch user details including member since date
+  useEffect(() => {
+    const fetchUserDetails = async () => {
+      if (user && !user.isGuest) {
+        try {
+          // First check if memberSince already exists in user object
+          if (user.memberSince) {
+            setMemberSince(user.memberSince);
+          } else {
+            // If not, fetch it from the server
+            const response = await axios.get(`${API_BASE_URL}/user-details`, {
+              withCredentials: true
+            });
+            
+            if (response.data.success && response.data.userDetails.memberSince) {
+              setMemberSince(response.data.userDetails.memberSince);
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching user details:', error);
+          setMemberSince('Unable to fetch');
+        }
+      }
+    };
+    
+    fetchUserDetails();
+  }, [user]);
 
   // Move all hooks to the top level before any conditional returns
   useEffect(() => {
@@ -81,10 +113,6 @@ const AccountPage = () => {
     setShowMobileTabMenu(false);
   };
 
-  const toggleDeleteMode = () => {
-    setIsDeleting(!isDeleting);
-  };
-
   const handleDeleteInterest = async (interestToDelete) => {
     console.log(`Deleting interest: ${interestToDelete}`);
   
@@ -135,13 +163,16 @@ const AccountPage = () => {
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm">
           <h3 className="font-medium mb-2">Member Since</h3>
-          <p className="text-gray-600">{user?.memberSince || 'February 2024'}</p>
+          <div className="flex items-center text-gray-600">
+            <Calendar size={16} className="mr-2 text-purple-500" />
+            <p>{user?.memberSince || memberSince || 'Loading...'}</p>
+          </div>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm">
           <h3 className="font-medium mb-2">Interests</h3>
-          {user?.interests && user.interests.length > 0 ? (
+          {userInterests.length > 0 ? (
             <div className="flex flex-wrap gap-2">
-              {user.interests.map((interest, index) => (
+              {userInterests.map((interest, index) => (
                 <span
                   key={index}
                   className="bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full text-xs"
