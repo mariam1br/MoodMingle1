@@ -334,13 +334,14 @@ def get_recommendations():
         interests = data.get("interests", [])
         location = data.get("location", "Unknown")
         weather = data.get("weather", "Unknown")
-        print(f"Generating recommendations for: Location: {location}, Weather: {weather}, Interests: {interests}")
+        temperature = data.get("temeprature", "Unknown")
+        print(f"Generating recommendations for: Location: {location}, Weather: {weather}, Temperatre: {temperature}, Interests: {interests}")
 
         if not interests:
             return jsonify({"error": "Interests are required."}), 400
 
         # Generate prompt and query LLM
-        prompt = create_prompt(interests, location, weather)
+        prompt = create_prompt(interests, location, weather, temperature)
         recommendations = query_gemini(prompt)
 
         return jsonify({"recommendations": recommendations})

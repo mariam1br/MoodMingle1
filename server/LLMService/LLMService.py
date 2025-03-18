@@ -17,10 +17,10 @@ GEMINI_API_KEY = os.getenv("LLM_API_KEY")
 client = genai.Client(api_key=GEMINI_API_KEY)
 
 # Function to generate a structured prompt for Gemini
-def create_prompt(interests, location, weather):
+def create_prompt(interests, location, weather, temperature):
     return (
         f"Suggest engaging activities for someone who enjoys {', '.join(interests)}. "
-        f"They are located in {location} and the current weather is {weather}. "
+        f"They are located in {location} and the current weather is {weather}, and temperature is {temperature} Degrees Celsius. "
         f"Include a mix of indoor and outdoor options, and highlight any local events. For the local events make sure to provide dates. "
         f"Respond strictly in JSON format with the following structure:\n\n"
         f"{{\n"
