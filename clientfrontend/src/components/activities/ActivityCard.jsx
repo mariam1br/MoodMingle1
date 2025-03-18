@@ -12,9 +12,9 @@ const ActivityCard = ({ activity }) => {
   const isSaved = isActivitySaved(title);
   const [showDetails, setShowDetails] = useState(false);
 
-  // Truncate description to 100 characters and add ellipsis if needed
-  const truncatedDescription = description.length > 100 
-    ? `${description.substring(0, 100)}...` 
+  // Truncate description to 95 characters and add ellipsis if needed
+  const truncatedDescription = description.length > 95
+    ? `${description.substring(0, 95)}...` 
     : description;
 
   const handleSaveToggle = async () => {
