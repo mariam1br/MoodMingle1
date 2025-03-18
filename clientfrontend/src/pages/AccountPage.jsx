@@ -17,8 +17,15 @@ const AccountPage = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const [showMobileTabMenu, setShowMobileTabMenu] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [userInterests, setUserInterests] = useState(user?.interests || []);
+  const [userInterests, setUserInterests] = useState([]);
   const [memberSince, setMemberSince] = useState('');
+
+  // Update userInterests whenever user.interests changes
+  useEffect(() => {
+    if (user && user.interests) {
+      setUserInterests(user.interests);
+    }
+  }, [user]);
 
   // Fetch user details including member since date
   useEffect(() => {
@@ -113,11 +120,15 @@ const AccountPage = () => {
     setShowMobileTabMenu(false);
   };
 
+  const toggleDeleteMode = () => {
+    setIsDeleting(!isDeleting);
+  };
+
   const handleDeleteInterest = async (interestToDelete) => {
     console.log(`Deleting interest: ${interestToDelete}`);
   
     try {
-      const response = await fetch("http://localhost:5001/remove-interest", {
+      const response = await fetch(`${API_BASE_URL}/remove-interest`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -170,7 +181,7 @@ const AccountPage = () => {
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm">
           <h3 className="font-medium mb-2">Interests</h3>
-          {userInterests.length > 0 ? (
+          {userInterests && userInterests.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {userInterests.map((interest, index) => (
                 <span
@@ -240,7 +251,7 @@ const AccountPage = () => {
   const InterestsSection = () => (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Your Interests</h2>
-      {userInterests.length > 0 ? (
+      {userInterests && userInterests.length > 0 ? (
         <div>
           <div className="flex flex-wrap gap-2 mb-6">
             {userInterests.map((interest, index) => (
