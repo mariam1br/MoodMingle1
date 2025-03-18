@@ -1,6 +1,8 @@
+// src/components/activities/ActivityCard.jsx
 import React, { useState } from 'react';
 import { MapPin, Sun, Heart } from 'lucide-react';
 import axios from "axios";
+import { useAuth } from '../../context/AuthContext';
 import { useSavedActivities } from '../../context/SavedActivitiesContext';
 import ActivityDetailsModal from './ActivityDetails';
 
@@ -8,63 +10,68 @@ const API_BASE_URL = "http://localhost:5001"; // Ensure this matches your backen
 
 const ActivityCard = ({ activity }) => {
   const { title, category, location, weather, description } = activity;
+  const { isLoggedIn } = useAuth();
   const { saveActivity, removeActivity, isActivitySaved } = useSavedActivities();
   const isSaved = isActivitySaved(title);
   const [showDetails, setShowDetails] = useState(false);
 
-  // Truncate description to 95 characters and add ellipsis if needed
-  const truncatedDescription = description.length > 95
-    ? `${description.substring(0, 95)}...` 
+  // Truncate description to 85 characters and add ellipsis if needed
+  const truncatedDescription = description.length > 85 
+    ? `${description.substring(0, 85)}...` 
     : description;
 
   const handleSaveToggle = async () => {
-    // Optimistically update UI
+    // Optimistically update UI for all users
     if (isSaved) {
       removeActivity(title); // Instantly update UI
     } else {
       saveActivity(activity); // Instantly update UI
     }
   
-    try {
-      if (isSaved) {
-        // Send request to remove activity from database
-        const response = await axios.post(
-          `${API_BASE_URL}/remove-activity`,
-          { title },
-          { withCredentials: true }
-        );
-  
-        if (!response.data.success) {
-          console.error("Failed to remove activity:", response.data.error);
-          saveActivity(activity); // Rollback UI update if failed
+    // Only attempt to save to database if logged in
+    if (isLoggedIn) {
+      try {
+        if (isSaved) {
+          // Send request to remove activity from database
+          const response = await axios.post(
+            `${API_BASE_URL}/remove-activity`,
+            { title },
+            { withCredentials: true }
+          );
+    
+          if (!response.data.success) {
+            console.error("Failed to remove activity:", response.data.error);
+            saveActivity(activity); // Rollback UI update if failed
+          }
+        } else {
+          // Send request to save activity to database
+          const response = await axios.post(
+            `${API_BASE_URL}/save-activity`,
+            {
+              title,
+              category,
+              location,
+              weather,
+              description,
+            },
+            { withCredentials: true }
+          );
+    
+          if (!response.data.success) {
+            console.error("Failed to save activity:", response.data.error);
+            removeActivity(title); // Rollback UI update if failed
+          }
         }
-      } else {
-        // Send request to save activity to database
-        const response = await axios.post(
-          `${API_BASE_URL}/save-activity`,
-          {
-            title,
-            category,
-            location,
-            weather,
-            description,
-          },
-          { withCredentials: true }
-        );
-  
-        if (!response.data.success) {
-          console.error("Failed to save activity:", response.data.error);
-          removeActivity(title); // Rollback UI update if failed
+      } catch (error) {
+        console.error("Error saving/removing activity:", error);
+        if (isSaved) {
+          saveActivity(activity); // Rollback UI update
+        } else {
+          removeActivity(title); // Rollback UI update
         }
-      }
-    } catch (error) {
-      console.error("Error saving/removing activity:", error);
-      if (isSaved) {
-        saveActivity(activity); // Rollback UI update
-      } else {
-        removeActivity(title); // Rollback UI update
       }
     }
+    // If not logged in, just keep the UI state change without database operations
   };  
 
   const handleViewDetails = () => {
