@@ -32,6 +32,7 @@ const DiscoverPage = () => {
   }, [user]);
 
   const handleGenerateActivities = async (selectedInterests) => {
+    setErrorMessage("");
     // Ensure we're working with unique interests
     const uniqueInterests = [...new Set(selectedInterests)];
     console.log('Generating activities with interests:', uniqueInterests);
