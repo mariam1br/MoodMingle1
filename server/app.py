@@ -485,8 +485,16 @@ def save_interests():
         datab.connect()
         db_queries = dq(datab.connection)
 
-        # Save user interests to the database
-        success = db_queries.save_preferences(username, interests)
+        existing_interests = set(db_queries.get_preferences(username) or [])
+        new_interests_set = set(interests)
+
+        interests_to_add = list(new_interests_set - existing_interests)
+
+        if interests_to_add:
+            success = db_queries.save_preferences(username, interests_to_add)
+        else:
+            success = True
+
         DatabaseConnection.disconnect(datab)
 
         if success:
@@ -550,28 +558,31 @@ def get_previous_interests():
 def remove_interest():
     if "user" not in session:
         return jsonify({"success": False, "error": "Not authenticated"}), 401
-    
+
     data = request.get_json()
     if not data or "interest" not in data:
         return jsonify({"success": False, "error": "Invalid request data"}), 400
-    
+
     username = session["user"]["username"]
     interest = data["interest"]
-    
+
     try:
         datab = DatabaseConnection(dbname="MoodMingle", user="moodmingle_user", password="team2", host="104.198.30.234", port=3306)
         datab.connect()
         db_queries = dq(datab.connection)
-        
-        # Remove the interest from the user's previous interests
-        # This assumes you have a method in your database queries class to remove an interest
+
+        # Ensure interest exists before attempting to remove
+        current_interests = db_queries.get_preferences(username)
+        if interest not in current_interests:
+            return jsonify({"success": False, "error": "Interest not found"}), 404
+
         success = db_queries.remove_interest(username, interest)
-        
+
         DatabaseConnection.disconnect(datab)
-        
+
         if not success:
             return jsonify({"success": False, "error": "Failed to remove interest"}), 500
-        
+
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
