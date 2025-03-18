@@ -11,6 +11,9 @@ const Header = () => {
   const { savedActivities } = useSavedActivities();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // Add debugging to see user object
+  console.log('Header - Current user:', user);
+
   const handleAuthClick = () => {
     if (isLoggedIn) {
       logout();
@@ -23,6 +26,27 @@ const Header = () => {
   const navigateTo = (path) => {
     navigate(path);
     setIsMobileMenuOpen(false);
+  };
+
+  // Safely get display name
+  const getDisplayName = () => {
+    if (!user) return 'Account';
+    
+    // Try name first, then username as fallback
+    if (user.name) return user.name;
+    if (user.displayName) return user.displayName;
+    if (user.username) return user.username;
+    return 'Account';
+  };
+
+  // Safely get first name for compact display
+  const getFirstName = () => {
+    const fullName = getDisplayName();
+    // Only try to split if it's likely a full name (contains space)
+    if (fullName && fullName.includes(' ')) {
+      return fullName.split(' ')[0];
+    }
+    return fullName;
   };
 
   return (
@@ -65,7 +89,7 @@ const Header = () => {
                 onClick={() => navigateTo('/account')}
               >
                 <User size={16} className="mr-1.5" />
-                {user ? user.displayName.split(' ')[0] : 'Account'}
+                {getFirstName()}
               </button>
             ) : null}
 
@@ -116,7 +140,7 @@ const Header = () => {
                 onClick={() => navigateTo('/account')}
               >
                 <User size={16} className="mr-2" />
-                Account
+                {getDisplayName()}
               </button>
             )}
 

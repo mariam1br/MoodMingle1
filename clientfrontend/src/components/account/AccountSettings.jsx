@@ -154,13 +154,14 @@ const AccountSettings = () => {
               type="text"
               name="name"
               value={formData.name}
+              disabled={true}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               placeholder="Your Name"
             />
-            {/* <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-gray-500">
               This name will be displayed throughout the app
-            </p> */}
+            </p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -170,10 +171,14 @@ const AccountSettings = () => {
               type="text"
               name="username"
               value={formData.username}
+              disabled={true}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               placeholder="your_username"
             />
+            <p className="mt-1 text-xs text-gray-500">
+              Username cannot be changed
+            </p>
             {/* <p className="mt-1 text-xs text-gray-500">
               Choose a unique username (letters, numbers, and underscores only)
             </p> */}
