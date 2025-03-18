@@ -7,7 +7,8 @@ const AccountSettings = () => {
   const { user, updateUserProfile } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
-    displayName: '',
+    name: '',
+    username: '',
     location: ''
   });
   
@@ -21,9 +22,11 @@ const AccountSettings = () => {
   // Set form data when user changes
   useEffect(() => {
     if (user) {
+      console.log('AccountSettings - Setting form data from user:', user);
       setFormData({
         email: user.email || '',
-        displayName: user.displayName || '',
+        name: user.name || '',
+        username: user.username || '',
         location: user.location || ''
       });
     }
@@ -31,21 +34,33 @@ const AccountSettings = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    console.log(`Field ${name} changed to: ${value}`);
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setStatus({ message: '', type: '' });
     
-    // In a real app, this would be validated more thoroughly
-    if (!formData.displayName.trim()) {
+    console.log('Submitting form with data:', formData);
+    
+    // Validate fields
+    if (!formData.name.trim()) {
       setStatus({
-        message: 'Display name is required',
+        message: 'Name is required',
+        type: 'error'
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    if (!formData.username.trim()) {
+      setStatus({
+        message: 'Username is required',
         type: 'error'
       });
       setIsLoading(false);
@@ -53,29 +68,46 @@ const AccountSettings = () => {
     }
     
     // Update user profile
-    const result = updateUserProfile({
-      displayName: formData.displayName,
-      location: formData.location
-    });
-    
-    if (result.success) {
-      setStatus({
-        message: 'Profile updated successfully',
-        type: 'success'
+    try {
+      console.log('Calling updateUserProfile with:', {
+        name: formData.name,
+        username: formData.username,
+        location: formData.location
       });
-    } else {
+      
+      const result = await updateUserProfile({
+        name: formData.name,
+        username: formData.username,
+        location: formData.location
+      });
+      
+      console.log('Update profile result:', result);
+      
+      if (result.success) {
+        setStatus({
+          message: 'Profile updated successfully',
+          type: 'success'
+        });
+      } else {
+        setStatus({
+          message: result.error || 'Failed to update profile',
+          type: 'error'
+        });
+      }
+    } catch (error) {
+      console.error('Error in form submission:', error);
       setStatus({
-        message: result.error || 'Failed to update profile',
+        message: 'An error occurred while updating profile',
         type: 'error'
       });
+    } finally {
+      setIsLoading(false);
+      
+      // Clear status after 3 seconds
+      setTimeout(() => {
+        setStatus({ message: '', type: '' });
+      }, 3000);
     }
-    
-    setIsLoading(false);
-    
-    // Clear status after 3 seconds
-    setTimeout(() => {
-      setStatus({ message: '', type: '' });
-    }, 3000);
   };
 
   return (
@@ -116,18 +148,37 @@ const AccountSettings = () => {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Display Name
+              Name
             </label>
             <input
               type="text"
-              name="displayName"
-              value={formData.displayName}
+              name="name"
+              value={formData.name}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               placeholder="Your Name"
             />
+            {/* <p className="mt-1 text-xs text-gray-500">
+              This name will be displayed throughout the app
+            </p> */}
           </div>
           <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Username
+            </label>
+            <input
+              type="text"
+              name="username"
+              value={formData.username}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              placeholder="your_username"
+            />
+            {/* <p className="mt-1 text-xs text-gray-500">
+              Choose a unique username (letters, numbers, and underscores only)
+            </p> */}
+          </div>
+          {/* <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Location
             </label>
@@ -140,7 +191,7 @@ const AccountSettings = () => {
               className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               placeholder="City, Country"
             />
-          </div>
+          </div> */}
           
           <button 
             type="submit"

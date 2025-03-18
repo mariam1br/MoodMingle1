@@ -10,6 +10,8 @@ const API_BASE_URL = "http://localhost:5001"; // Ensure this matches your backen
 
 const DiscoverPage = () => {
   const { user } = useAuth();
+  console.log('DiscoverPage - Current user:', user);
+  
   const [activities, setActivities] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [generatedInterests, setGeneratedInterests] = useState([]);
@@ -22,6 +24,7 @@ const DiscoverPage = () => {
   // Load user interests if logged in
   useEffect(() => {
     if (user && user.interests) {
+      console.log('Setting user interests from user object:', user.interests);
       // Ensure unique interests only when loading from user
       const uniqueInterests = [...new Set(user.interests)];
       setUserInterests(uniqueInterests);
@@ -31,6 +34,7 @@ const DiscoverPage = () => {
   const handleGenerateActivities = async (selectedInterests) => {
     // Ensure we're working with unique interests
     const uniqueInterests = [...new Set(selectedInterests)];
+    console.log('Generating activities with interests:', uniqueInterests);
     
     // Optimistically update UI
     setGeneratedInterests(uniqueInterests);
@@ -40,6 +44,7 @@ const DiscoverPage = () => {
   
     try {
       if (user) {
+        console.log('Saving interests to database for user:', user.username);
         // Save interests to the database
         const response = await axios.post(
           `${API_BASE_URL}/save-interests`,
@@ -54,6 +59,12 @@ const DiscoverPage = () => {
       }
   
       // Fetch activity recommendations
+      console.log('Fetching activity recommendations with:', { 
+        interests: uniqueInterests, 
+        location, 
+        weather: weather?.condition 
+      });
+      
       const response = await fetch(`${API_BASE_URL}/get-recommendations`, {
         method: "POST",
         headers: {
@@ -71,6 +82,7 @@ const DiscoverPage = () => {
       }
   
       const data = await response.json();
+      console.log('Received recommendations:', data);
   
       // Transform API response into frontend-friendly format
       const transformedActivities = [
@@ -85,6 +97,7 @@ const DiscoverPage = () => {
         description: activity.description,
       }));
   
+      console.log('Transformed activities:', transformedActivities);
       setActivities(transformedActivities);
       setHasGenerated(true);
     } catch (error) {
@@ -98,9 +111,11 @@ const DiscoverPage = () => {
   
   // Function to handle interest changes from InterestTags component
   const handleInterestsChange = (updatedInterests) => {
+    console.log('Interests changed:', updatedInterests);
     // Only update activities if we had previously generated them
     // This prevents clearing when we haven't generated anything yet
     if (hasGenerated && updatedInterests.length === 0) {
+      console.log('Clearing activities due to empty interests');
       setActivities([]);
       setGeneratedInterests([]);
       setHasGenerated(false);
@@ -111,6 +126,7 @@ const DiscoverPage = () => {
   const handleAddInterest = (interest) => {
     // Normalize the interest by trimming and converting to lowercase for comparison
     const normalizedInterest = interest.trim().toLowerCase();
+    console.log('Adding interest:', interest, 'normalized:', normalizedInterest);
     
     // Check if this interest already exists (case-insensitive comparison)
     const isDuplicate = userInterests.some(
@@ -118,9 +134,11 @@ const DiscoverPage = () => {
     );
     
     if (!isDuplicate && normalizedInterest) {
+      console.log('Adding new interest to list:', interest.trim());
       // Use the original case of the interest, but prevent duplicates
       document.dispatchEvent(new CustomEvent('addInterest', { detail: interest.trim() }));
     } else if (isDuplicate) {
+      console.log('Interest already exists in list:', interest);
       // Optionally show a message or notification that this is a duplicate
       setErrorMessage("This interest is already in your list.");
       
@@ -137,13 +155,15 @@ const DiscoverPage = () => {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const { latitude, longitude } = position.coords;
+          console.log('Got user coordinates:', latitude, longitude);
 
           try {
-            const response = await axios.post("http://127.0.0.1:5001/get_weather", {
+            const response = await axios.post(`${API_BASE_URL}/get_weather`, {
               latitude,
               longitude,
             });
 
+            console.log('Weather data received:', response.data);
             setLocation(response.data.location);
             setWeather(response.data.weather);
           } catch (err) {
@@ -151,9 +171,13 @@ const DiscoverPage = () => {
             setErrorMessage("Failed to fetch weather data.");
           }
         },
-        () => setErrorMessage("Location access denied.")
+        (error) => {
+          console.error('Geolocation error:', error);
+          setErrorMessage("Location access denied.");
+        }
       );
     } else {
+      console.log('Geolocation not supported by browser');
       setErrorMessage("Geolocation is not supported.");
     }
   }, []);
@@ -174,8 +198,9 @@ const DiscoverPage = () => {
         
         {user && (
           <div className="bg-purple-50 rounded-xl p-4 mb-8 text-sm sm:text-base text-center">
+            {console.log('Rendering welcome message with user:', user)}
             <p className="text-purple-600">
-              Welcome back, <strong>{user.displayName}</strong>! 
+              Welcome back, <strong>{user.name || user.username}</strong>! 
             </p>
           </div>
         )}

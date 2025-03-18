@@ -104,8 +104,8 @@ def login():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Query to get user by username - now including createdAT
-        query = "SELECT username, password, email, createdAT FROM Users WHERE username = %s"
+        # Query to get user by username - using name field from database
+        query = "SELECT username, password, email, name, createdAT FROM Users WHERE username = %s"
         print(f"Executing query: {query} with username={username}")
         cursor.execute(query, (username,))
         user_data = cursor.fetchone()
@@ -115,7 +115,7 @@ def login():
         # Check if user exists and password matches
         if user_data and user_data[1] == password:  # Plain text comparison for now
             # Format the date nicely if it exists
-            created_at = user_data[3]
+            created_at = user_data[4]
             if created_at:
                 # Format date as "Month Year" (e.g., "March 2024")
                 member_since = created_at.strftime("%B %Y")
@@ -124,7 +124,7 @@ def login():
                 
             user_obj = {
                 "username": user_data[0],
-                "displayName": user_data[0],  # Use username as displayName since name column doesn't exist
+                "name": user_data[3],  # Use name from database
                 "email": user_data[2],
                 "memberSince": member_since
             }
@@ -159,6 +159,7 @@ def signup():
     try:
         data = request.json
         username = data.get("username")
+        name = data.get("displayName", username)  # Fall back to username if no displayName
         email = data.get("email")
         password = data.get("password")
         
@@ -173,19 +174,24 @@ def signup():
             conn.close()
             return jsonify({"success": False, "error": "Username or email already exists"}), 400
         
-        # Insert new user - only use fields that exist in your table
+        # Insert new user - including name field
         insert_query = """
-        INSERT INTO Users (username, email, password)
-        VALUES (%s, %s, %s)
+        INSERT INTO Users (username, name, email, password)
+        VALUES (%s, %s, %s, %s)
         """
-        cursor.execute(insert_query, (username, email, password))
+        cursor.execute(insert_query, (username, name, email, password))
         conn.commit()
+        
+        # Get the current date for memberSince
+        from datetime import datetime
+        current_date = datetime.now().strftime("%B %Y")
         
         # Create user object for response
         user_obj = {
             "username": username,
-            "displayName": username,  # Use username as display name
-            "email": email
+            "name": name,  # Use name instead of displayName
+            "email": email,
+            "memberSince": current_date
         }
         
         # Store in session
@@ -208,13 +214,47 @@ def update_profile():
             return jsonify({"success": False, "error": "Not authenticated"}), 401
             
         data = request.json
-        username = data.get("username")
+        print(f"Received profile update data: {data}")
+        print(f"Current session data before update: {session['user']}")
+        
+        current_username = data.get("username")
+        new_username = data.get("username", current_username)
+        name = data.get("name")  # Name field from form
+        location = data.get("location")
+        
+        print(f"Updating profile: username={current_username} -> {new_username}, name={name}, location={location}")
         
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Your database doesn't have a 'name' column, so we can only update other fields if needed
-        # For now, let's just return success
+        # Check if new username already exists (if changing username)
+        if new_username != current_username:
+            check_query = "SELECT COUNT(*) FROM Users WHERE username = %s"
+            cursor.execute(check_query, (new_username,))
+            if cursor.fetchone()[0] > 0:
+                cursor.close()
+                conn.close()
+                return jsonify({"success": False, "error": "Username already exists"}), 400
+        
+        # Update user profile in database
+        update_query = """
+        UPDATE Users 
+        SET username = %s, name = %s, location = %s 
+        WHERE username = %s
+        """
+        
+        print(f"Executing SQL: {update_query} with values: {new_username}, {name}, {location}, {current_username}")
+        cursor.execute(update_query, (new_username, name, location, current_username))
+        conn.commit()
+        print(f"Database update successful, rows affected: {cursor.rowcount}")
+        
+        # Update session with new values
+        session['user'].update({
+            'username': new_username,
+            'name': name,
+            'location': location
+        })
+        print(f"Updated session data: {session['user']}")
         
         cursor.close()
         conn.close()
@@ -285,7 +325,7 @@ def current_user():
         guest_user = {
             "username": "Guest",
             "email": "",
-            "displayName": "Guest User",
+            "name": "Guest User",  # Changed from displayName to name for consistency
             "isGuest": True,  # Flag to indicate this is a guest user
         }
         return jsonify({"success": True, "user": guest_user})

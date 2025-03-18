@@ -96,7 +96,7 @@ export const AuthProvider = ({ children }) => {
         setIsLoggedIn(true);
         
         // Fetch interests immediately after successful login
-        await fetchUserInterests();
+        fetchUserInterests();
         
         return { success: true, user: response.data.user };
       } else {
@@ -133,7 +133,7 @@ export const AuthProvider = ({ children }) => {
         setIsLoggedIn(true);
         
         // Fetch interests immediately after successful signup
-        await fetchUserInterests();
+        fetchUserInterests();
         
         return { success: true, user: response.data.user };
       } else {
@@ -177,7 +177,8 @@ export const AuthProvider = ({ children }) => {
   const updateUserProfile = async (profileData) => {
     if (user) {
       try {
-        console.log('Updating profile:', profileData);
+        console.log('Updating profile with data:', profileData);
+        console.log('Current user state before update:', user);
         
         const response = await axios.put(`${API_BASE_URL}/update-profile`, {
           username: user.username,
@@ -189,7 +190,12 @@ export const AuthProvider = ({ children }) => {
         console.log('Update profile response:', response.data);
         
         if (response.data.success) {
-          setUser((prevUser) => ({ ...prevUser, ...profileData }));
+          // Update the user state with the new profile data
+          setUser((prevUser) => {
+            const updated = { ...prevUser, ...profileData };
+            console.log('Updated user state:', updated);
+            return updated;
+          });
           return { success: true };
         }
         return { success: false, error: response.data.error };
@@ -201,7 +207,7 @@ export const AuthProvider = ({ children }) => {
     }
     return { success: false, error: "User not logged in" };
   };
-
+  
   // Testing function to execute SQL - ONLY FOR DEVELOPMENT
   const executeSql = async (query) => {
     try {
