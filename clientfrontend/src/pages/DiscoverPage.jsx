@@ -173,12 +173,9 @@ const DiscoverPage = () => {
         </section>
         
         {user && (
-          <div className="bg-purple-50 rounded-xl p-4 mb-8 text-sm sm:text-base">
+          <div className="bg-purple-50 rounded-xl p-4 mb-8 text-sm sm:text-base text-center">
             <p className="text-purple-600">
               Welcome back, <strong>{user.displayName}</strong>! 
-              {userInterests.length > 0 
-                ? ` Your saved interests: ${userInterests.join(', ')}`
-                : ' Start adding interests to get personalized activity suggestions.'}
             </p>
           </div>
         )}
