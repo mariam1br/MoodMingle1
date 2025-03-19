@@ -136,11 +136,9 @@ const DiscoverPage = () => {
     
     if (!isDuplicate && normalizedInterest) {
       console.log('Adding new interest to list:', interest.trim());
-      // Use the original case of the interest, but prevent duplicates
       document.dispatchEvent(new CustomEvent('addInterest', { detail: interest.trim() }));
     } else if (isDuplicate) {
       console.log('Interest already exists in list:', interest);
-      // Optionally show a message or notification that this is a duplicate
       setErrorMessage("This interest is already in your list.");
       
       // Clear the error message after 3 seconds

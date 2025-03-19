@@ -207,7 +207,7 @@ export const AuthProvider = ({ children }) => {
     return { success: false, error: "User not logged in" };
   };
   
-  // Testing function to execute SQL - ONLY FOR DEVELOPMENT
+  // Testing function to execute SQL (used fo development mode purposes)
   const executeSql = async (query) => {
     try {
       const response = await axios.post(`${API_BASE_URL}/execute-sql`, { query });
@@ -229,7 +229,7 @@ export const AuthProvider = ({ children }) => {
         updateUserInterests,
         updateUserProfile,
         isLoading,
-        executeSql // Only include in development mode
+        executeSql
       }}
     >
       {children}

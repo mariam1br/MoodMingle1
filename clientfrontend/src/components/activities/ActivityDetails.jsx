@@ -109,7 +109,7 @@ const ActivityDetails = ({ activity, onClose }) => {
               </div>
             </div>
 
-            {/* Action Buttons - Reordered: Share on left, Save on right */}
+            {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 mt-8">
               <button 
                 onClick={handleShare}

@@ -52,17 +52,7 @@ class DatabaseQueries:
             self.connection.rollback()
             return False
 
-    # Check if user exists (Returns True/False)
-    # def user_exists(self, username, password):
-    #     query = """
-    #     SELECT * FROM Users WHERE username = %s AND password = %s
-    #     """
-    #     try:
-    #         self.cursor.execute(query, (username, password))
-    #         return self.cursor.fetchone()[0] > 0
-    #     except mysql.connector.Error as e:
-    #         print(f"Error checking user existence: {e}")
-    #         return False
+   # Checking if the user exists
     def user_exists_2(self, username, password):
         query = """
         SELECT username, password FROM Users WHERE username = %s

@@ -11,7 +11,7 @@ const Header = () => {
   const { savedActivities } = useSavedActivities();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Add debugging to see user object
+  // Some debugging to see information of the user
   console.log('Header - Current user:', user);
 
   const handleAuthClick = () => {
