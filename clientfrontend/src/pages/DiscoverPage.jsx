@@ -1,4 +1,3 @@
-// src/pages/DiscoverPage.jsx
 import React, { useState, useEffect } from 'react';
 import SearchBar from '../components/search/SearchBar';
 import InterestTags from '../components/search/InterestTags';
@@ -18,14 +17,13 @@ const DiscoverPage = () => {
   const [userInterests, setUserInterests] = useState([]);
   const [hasGenerated, setHasGenerated] = useState(false);
   const [location, setLocation] = useState("");
-  const [weather, setWeather] = useState(null);
+  const [weather, setWeather] = useState({ condition: null, temperature: null });
   const [errorMessage, setErrorMessage] = useState("");
 
   // Load user interests if logged in
   useEffect(() => {
     if (user && user.interests) {
       console.log('Setting user interests from user object:', user.interests);
-      // Ensure unique interests only when loading from user
       const uniqueInterests = [...new Set(user.interests)];
       setUserInterests(uniqueInterests);
     }
@@ -33,20 +31,17 @@ const DiscoverPage = () => {
 
   const handleGenerateActivities = async (selectedInterests) => {
     setErrorMessage("");
-    // Ensure we're working with unique interests
     const uniqueInterests = [...new Set(selectedInterests)];
     console.log('Generating activities with interests:', uniqueInterests);
     
-    // Optimistically update UI
     setGeneratedInterests(uniqueInterests);
     setUserInterests(uniqueInterests);
-    setHasGenerated(false); // Reset previous results
+    setHasGenerated(false);
     setIsLoading(true);
   
     try {
       if (user) {
         console.log('Saving interests to database for user:', user.username);
-        // Save interests to the database
         const response = await axios.post(
           `${API_BASE_URL}/save-interests`,
           { interests: uniqueInterests },
@@ -55,7 +50,7 @@ const DiscoverPage = () => {
   
         if (!response.data.success) {
           console.error("Failed to save interests:", response.data.error);
-          setUserInterests([]); // Rollback UI update
+          setUserInterests([]); 
         }
       }
   
@@ -63,7 +58,8 @@ const DiscoverPage = () => {
       console.log('Fetching activity recommendations with:', { 
         interests: uniqueInterests, 
         location, 
-        weather: weather?.condition 
+        weather: weather?.condition,
+        temperature: weather?.temperature,
       });
       
       const response = await fetch(`${API_BASE_URL}/get-recommendations`, {
@@ -75,6 +71,7 @@ const DiscoverPage = () => {
           interests: uniqueInterests,
           location: location,
           weather: weather?.condition,
+          temperature: weather?.temperature,
         }),
       });
   
@@ -85,7 +82,6 @@ const DiscoverPage = () => {
       const data = await response.json();
       console.log('Received recommendations:', data);
   
-      // Transform API response into frontend-friendly format
       const transformedActivities = [
         ...data.recommendations.outdoor_activities,
         ...data.recommendations.indoor_activities,
@@ -104,17 +100,20 @@ const DiscoverPage = () => {
     } catch (error) {
       console.error("Error generating activities:", error);
       setErrorMessage("Failed to generate activities. Please try again later.");
-      setUserInterests([]); // Rollback UI update
+      setUserInterests([]); 
     } finally {
       setIsLoading(false);
     }
   };
-  
-  // Function to handle interest changes from InterestTags component
+
+  // Update location when the user types in the SearchBar
+  const handleLocationChange = (newLocation) => {
+    console.log('User updated location:', newLocation);
+    setLocation(newLocation);
+  };
+
   const handleInterestsChange = (updatedInterests) => {
     console.log('Interests changed:', updatedInterests);
-    // Only update activities if we had previously generated them
-    // This prevents clearing when we haven't generated anything yet
     if (hasGenerated && updatedInterests.length === 0) {
       console.log('Clearing activities due to empty interests');
       setActivities([]);
@@ -123,13 +122,10 @@ const DiscoverPage = () => {
     }
   };
 
-  // Custom handler for adding interests that prevents duplicates
   const handleAddInterest = (interest) => {
-    // Normalize the interest by trimming and converting to lowercase for comparison
     const normalizedInterest = interest.trim().toLowerCase();
     console.log('Adding interest:', interest, 'normalized:', normalizedInterest);
     
-    // Check if this interest already exists (case-insensitive comparison)
     const isDuplicate = userInterests.some(
       existingInterest => existingInterest.toLowerCase() === normalizedInterest
     );
@@ -140,15 +136,10 @@ const DiscoverPage = () => {
     } else if (isDuplicate) {
       console.log('Interest already exists in list:', interest);
       setErrorMessage("This interest is already in your list.");
-      
-      // Clear the error message after 3 seconds
-      setTimeout(() => {
-        setErrorMessage("");
-      }, 3000);
+      setTimeout(() => setErrorMessage(""), 3000);
     }
   };
 
-  // Fetch weather data based on user's location
   useEffect(() => {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
@@ -164,7 +155,10 @@ const DiscoverPage = () => {
 
             console.log('Weather data received:', response.data);
             setLocation(response.data.location);
-            setWeather(response.data.weather);
+            setWeather({
+              condition: response.data.weather.condition,
+              temperature: response.data.weather.temperature,
+            });
           } catch (err) {
             console.error("Weather fetch error:", err);
             setErrorMessage("Failed to fetch weather data.");
@@ -175,18 +169,16 @@ const DiscoverPage = () => {
           setErrorMessage("Location access denied.");
         }
       );
-    } else {
-      console.log('Geolocation not supported by browser');
-      setErrorMessage("Geolocation is not supported.");
     }
   }, []);
-
   return (
     <div className="container mx-auto px-4 sm:px-6 py-6">
       <div className="max-w-2xl mx-auto"> 
         <section className="bg-white rounded-xl shadow-sm p-4 sm:p-6 mb-8">
           <div className="flex flex-col space-y-4">
-            <SearchBar onAddInterest={handleAddInterest} />
+            <SearchBar onAddInterest={handleAddInterest} 
+              location={location}
+              onLocationChange={handleLocationChange}/>
             <InterestTags 
               onGenerateActivities={handleGenerateActivities}
               onInterestsChange={handleInterestsChange}
