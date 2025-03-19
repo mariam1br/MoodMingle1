@@ -14,7 +14,7 @@ const AccountSettings = () => {
   
   const [status, setStatus] = useState({
     message: '',
-    type: '' // 'success' or 'error'
+    type: '' 
   });
   
   const [isLoading, setIsLoading] = useState(false);
@@ -179,24 +179,7 @@ const AccountSettings = () => {
             <p className="mt-1 text-xs text-gray-500">
               Username cannot be changed
             </p>
-            {/* <p className="mt-1 text-xs text-gray-500">
-              Choose a unique username (letters, numbers, and underscores only)
-            </p> */}
           </div>
-          {/* <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Location
-            </label>
-            <input
-              type="text"
-              name="location"
-              value={formData.location}
-              disabled={true}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-              placeholder="City, Country"
-            />
-          </div> */}
           
           <button 
             type="submit"

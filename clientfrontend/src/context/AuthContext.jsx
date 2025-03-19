@@ -4,7 +4,6 @@ import axios from 'axios';
 
 const AuthContext = createContext(null);
 
-// API base URL - Change this to match your Flask server address
 const API_BASE_URL = 'http://localhost:5001';
 
 export const AuthProvider = ({ children }) => {

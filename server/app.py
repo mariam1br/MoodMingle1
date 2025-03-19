@@ -2,7 +2,7 @@
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 from database.databaseConnection import DatabaseConnection  # Ensure this is set up to connect to MySQL
-from database.databaseQueries import DatabaseQueries as dq  # Import your query class
+from database.databaseQueries import DatabaseQueries as dq  
 from LLMService.LLMService import create_prompt, query_gemini
 from WeatherService.googleapi import get_location, get_weather
 import mysql.connector
@@ -642,7 +642,6 @@ def get_previous_interests():
         db_queries = dq(datab.connection)
         
         # Fetch previous interests for the user
-        # This assumes you have a method in your database queries class to get previous interests
         previous_interests = db_queries.get_previous_interests(username)
         
         DatabaseConnection.disconnect(datab)

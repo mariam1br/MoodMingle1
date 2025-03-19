@@ -120,9 +120,6 @@ const AccountPage = () => {
     setShowMobileTabMenu(false);
   };
 
-  // const toggleDeleteMode = () => {
-  //   setIsDeleting(!isDeleting);
-  // };
 
   const handleDeleteInterest = async (interestToDelete) => {
     console.log(`Deleting interest: ${interestToDelete}`);

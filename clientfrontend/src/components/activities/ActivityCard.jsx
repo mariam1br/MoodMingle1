@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useSavedActivities } from '../../context/SavedActivitiesContext';
 import ActivityDetailsModal from './ActivityDetails';
 
-const API_BASE_URL = "http://localhost:5001"; // Ensure this matches your backend URL
+const API_BASE_URL = "http://localhost:5001"; 
 
 const ActivityCard = ({ activity }) => {
   const { title, category, location, weather, description } = activity;
@@ -15,9 +15,9 @@ const ActivityCard = ({ activity }) => {
   const isSaved = isActivitySaved(title);
   const [showDetails, setShowDetails] = useState(false);
 
-  // Truncate description to 85 characters and add ellipsis if needed
-  const truncatedDescription = description.length > 85 
-    ? `${description.substring(0, 85)}...` 
+  // Truncate description to 95 characters and add ellipsis if needed
+  const truncatedDescription = description.length > 95 
+    ? `${description.substring(0, 95)}...` 
     : description;
 
   const handleSaveToggle = async () => {

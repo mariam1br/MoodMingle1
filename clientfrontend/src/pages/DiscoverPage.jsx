@@ -6,7 +6,7 @@ import ActivityCard from '../components/activities/ActivityCard';
 import { useAuth } from '../context/AuthContext';
 import axios from "axios";
   
-const API_BASE_URL = "http://localhost:5001"; // Ensure this matches your backend URL
+const API_BASE_URL = "http://localhost:5001"; 
 
 const DiscoverPage = () => {
   const { user } = useAuth();
