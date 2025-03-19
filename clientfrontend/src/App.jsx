@@ -8,6 +8,7 @@ import SignInPage from './pages/SignInPage';
 import DiscoverPage from './pages/DiscoverPage';
 import AccountPage from './pages/AccountPage';
 import SavedPage from './pages/SavedPage';
+import { NotFound } from './pages/NotFoundPage';
 
 const App = () => {
   return (
@@ -21,6 +22,7 @@ const App = () => {
               <Route path="/account" element={<AccountPage />} />
               <Route path="/saved" element={<SavedPage />} />
             </Route>
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </Router>
       </SavedActivitiesProvider>
