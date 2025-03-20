@@ -28,14 +28,27 @@ export const AuthProvider = ({ children }) => {
 
         if (fetchedUser && !fetchedUser.isGuest) {
           // If there is a logged-in user, set the user and mark them as logged in
-          setUser(fetchedUser);
+          
+          // Ensure interests property exists, even if empty
+          const userWithDefaultInterests = {
+            ...fetchedUser,
+            interests: fetchedUser.interests || []
+          };
+          
+          setUser(userWithDefaultInterests);
           setIsLoggedIn(true);
           
-          // Fetch user interests immediately after login confirmation
-          // Add a small delay to ensure the session is established
-          setTimeout(() => {
-            fetchUserInterests();
-          }, 500);
+          // Fetch user interests if not already included in user data
+          if (!fetchedUser.interests || fetchedUser.interests.length === 0) {
+            console.log('No interests in user data, fetching separately');
+            
+            // Add a small delay to ensure the session is established
+            setTimeout(() => {
+              fetchUserInterests();
+            }, 500);
+          } else {
+            console.log('Interests already in user data:', fetchedUser.interests);
+          }
         } else {
           // If the user is a guest or none exists, ensure logged out state
           setUser(null);
@@ -102,23 +115,18 @@ export const AuthProvider = ({ children }) => {
       console.log('Login response:', response.data);
 
       if (response.data.success) {
-        // Create a user object with interests property (even if empty initially)
+        // Ensure interests property exists (should be included directly in the response now)
         const userWithInterests = {
           ...response.data.user,
-          interests: []
+          interests: response.data.user.interests || []
         };
+        
+        console.log('User with interests from login:', userWithInterests);
         
         setUser(userWithInterests);
         setIsLoggedIn(true);
         
-        // Add a delay before fetching interests to ensure session is established
-        setTimeout(async () => {
-          try {
-            await fetchUserInterests();
-          } catch (err) {
-            console.error("Error fetching interests after login:", err);
-          }
-        }, 1000);
+        // No need to fetch interests separately - they should be included in the login response
         
         return { success: true, user: userWithInterests };
       } else {
@@ -150,24 +158,15 @@ export const AuthProvider = ({ children }) => {
       console.log('Signup response:', response.data);
       
       if (response.data.success) {
-        // Create a user object with interests property (even if empty initially)
+        // Ensure interests property exists (should be empty for new users)
         const userWithInterests = {
           ...response.data.user,
-          interests: []
+          interests: response.data.user.interests || []
         };
         
         // Auto-login after successful signup
         setUser(userWithInterests);
         setIsLoggedIn(true);
-        
-        // Add a delay before fetching interests to ensure session is established
-        setTimeout(async () => {
-          try {
-            await fetchUserInterests();
-          } catch (err) {
-            console.error("Error fetching interests after signup:", err);
-          }
-        }, 1000);
         
         return { success: true, user: userWithInterests };
       } else {

@@ -13,9 +13,22 @@ from dotenv import load_dotenv
 
 app = Flask(__name__)
 app.secret_key = "kbo7c43w7898jbs"  # Required for session management
-CORS(app, supports_credentials=True, origins=["https://moodmingle-1w1q.onrender.com"])
+app.config['SESSION_COOKIE_SECURE'] = True  # For HTTPS
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Important for cross-site requests
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)  # Session lasts 7 days
 
+# Updated CORS configuration
+CORS(app, 
+    supports_credentials=True, 
+    origins=["https://moodmingle-1w1q.onrender.com"],
+    allow_headers=["Content-Type", "Authorization"],
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
+@app.before_request
+def make_session_permanent():
+    session.permanent = True
+    
 # Database connection configuration
 DB_CONFIG = {
     'host': '104.198.30.234',
@@ -113,12 +126,31 @@ def login():
                 "memberSince": member_since
             }
             
+            # Immediately fetch user interests to include in response
+            interests_query = """
+            SELECT p.keyword 
+            FROM Preferences p
+            JOIN Users u ON p.userID = u.userID
+            WHERE u.username = %s
+            """
+            
+            cursor.execute(interests_query, (username,))
+            interests_data = cursor.fetchall()
+            interests = [row[0] for row in interests_data]
+            
+            print(f"Found interests for user {username}: {interests}")
+            
+            # Add interests to user object
+            user_obj["interests"] = interests
+            
             # Store in session
             session['user'] = user_obj
             
             print(f"Login successful for user: {username}")
             cursor.close()
             conn.close()
+            
+            # Return user with interests included
             return jsonify({"success": True, "user": user_obj})
         else:
             if not user_data:
@@ -569,22 +601,62 @@ def remove_activity():
 # Add or modify these two functions in your app.py file
 
 # Get interests for a user
+# Get interests for a user
 @app.route("/get-interests", methods=["GET"])
 def get_interests():
     try:
         # Check if user is in session
+        print("Session data:", dict(session))
         if "user" not in session:
-            # For debugging - print the session contents
-            print("Session data:", session)
             print("User not found in session")
-            return jsonify({"success": False, "error": "Not authenticated"}), 401
-
-        username = session["user"]["username"]
+            
+            # Check for direct auth via headers as fallback
+            auth_header = request.headers.get('Authorization')
+            if auth_header:
+                print("Found Authorization header, checking...")
+                
+                if auth_header.startswith('Basic '):
+                    import base64
+                    credentials = base64.b64decode(auth_header[6:]).decode('utf-8')
+                    username, password = credentials.split(':')
+                    
+                    conn = get_db_connection()
+                    cursor = conn.cursor()
+                    
+                    cursor.execute("SELECT username FROM Users WHERE username = %s AND password = %s", 
+                                 (username, password))
+                    user_result = cursor.fetchone()
+                    
+                    if user_result:
+                        print(f"Authenticated user via header: {username}")
+                        # Proceed with this username
+                    else:
+                        print("Invalid credentials in Authorization header")
+                        return jsonify({"success": False, "error": "Invalid credentials"}), 401
+                else:
+                    print("Unsupported authorization method")
+                    return jsonify({"success": False, "error": "Not authenticated"}), 401
+            else:
+                return jsonify({"success": False, "error": "Not authenticated"}), 401
+        else:
+            username = session["user"]["username"]
+            print(f"User found in session: {username}")
+        
+        # Get username from session or from auth header
+        if "user" in session:
+            username = session["user"]["username"]
+        # else username was set from the Auth header above
+        
         print(f"Fetching interests for user: {username}")
 
         # Get the connection
         conn = get_db_connection()
         cursor = conn.cursor()
+        
+        # Test if the connection works
+        cursor.execute("SELECT 1")
+        test_result = cursor.fetchone()
+        print(f"Database connection test: {test_result}")
         
         # Query to get user preferences/interests
         query = """
