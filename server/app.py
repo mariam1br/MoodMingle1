@@ -14,6 +14,8 @@ from dotenv import load_dotenv
 app = Flask(__name__)
 app.secret_key = "kbo7c43w7898jbs"  # Required for session management
 CORS(app, supports_credentials=True, origins=["https://moodmingle-1w1q.onrender.com"])
+
+
 # Database connection configuration
 DB_CONFIG = {
     'host': '104.198.30.234',
@@ -414,22 +416,55 @@ def get_recommendations():
         interests = data.get("interests", [])
         location = data.get("location", "Unknown")
         weather = data.get("weather", "Unknown")
-        temperature = data.get("temeprature", "Unknown")
-        print(f"Generating recommendations for: Location: {location}, Weather: {weather}, Temperatre: {temperature}, Interests: {interests}")
+        temperature = data.get("temperature", "Unknown")
+        print(f"Generating recommendations for: Location: {location}, Weather: {weather}, Temperature: {temperature}, Interests: {interests}")
 
         if not interests:
             return jsonify({"error": "Interests are required."}), 400
 
-        # Generate prompt and query LLM
-        prompt = create_prompt(interests, location, weather, temperature)
-        recommendations = query_gemini(prompt)
-
-        return jsonify({"recommendations": recommendations})
+        try:
+            # Generate prompt and query LLM
+            prompt = create_prompt(interests, location, weather, temperature)
+            recommendations = query_gemini(prompt)
+            
+            # Return empty results if there's an error
+            if isinstance(recommendations, dict) and "error" in recommendations:
+                print(f"Error from Gemini: {recommendations['error']}")
+                return jsonify({
+                    "recommendations": {
+                        "outdoor_activities": [],
+                        "indoor_activities": [],
+                        "local_events": [],
+                        "considerations": ["Could not generate recommendations at this time."]
+                    }
+                })
+                
+            return jsonify({"recommendations": recommendations})
+        except Exception as e:
+            print(f"Error calling Gemini: {str(e)}")
+            # Return empty but valid data structure on error
+            return jsonify({
+                "recommendations": {
+                    "outdoor_activities": [],
+                    "indoor_activities": [],
+                    "local_events": [],
+                    "considerations": ["Could not generate recommendations at this time."]
+                }
+            })
     except Exception as e:
         print(f"Error in get_recommendations: {str(e)}")
+        import traceback
         traceback.print_exc()
-        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
-
+        # Return empty but valid data structure on error
+        return jsonify({
+            "recommendations": {
+                "outdoor_activities": [],
+                "indoor_activities": [],
+                "local_events": [],
+                "considerations": ["Could not generate recommendations at this time."]
+            }
+        })
+    
 # Database query to get Saved Activities for a user
 @app.route("/saved-activities", methods=["GET"])
 def get_saved_activities():
@@ -644,4 +679,5 @@ def weather():
     return jsonify({"location": latest_location, "weather": latest_weather})
 
 if __name__ == "__main__":
-    app.run(port=5001, debug=True)
+    port = int(os.environ.get("PORT", 5001))
+    app.run(host="0.0.0.0", port=port)

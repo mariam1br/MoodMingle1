@@ -8,7 +8,7 @@ import AccountSettings from '../components/account/AccountSettings';
 import ActivityCard from '../components/activities/ActivityCard';
 import axios from 'axios';
 
-const API_BASE_URL = "https://moodmingle-1w1q.onrender.com/";
+const API_BASE_URL = "https://moodmingle-backend.onrender.com";
 
 const AccountPage = () => {
   const navigate = useNavigate();
