@@ -1,5 +1,4 @@
-#app.py
-from datetime import timedelta
+# app.py
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 from database.databaseConnection import DatabaseConnection 
@@ -10,31 +9,34 @@ import mysql.connector
 import traceback
 import requests
 import os
+from datetime import timedelta
 from dotenv import load_dotenv
 
 app = Flask(__name__)
 app.secret_key = "kbo7c43w7898jbs"  # Required for session management
+
+# Session configuration
 app.config['SESSION_COOKIE_SECURE'] = True  # For HTTPS
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Important for cross-site requests
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)  # Session lasts 7 days
 
-# Updated CORS configuration
-CORS(
-    app,
-    supports_credentials=True,
-    # Allow all origins in development - restrict this in production
-    origins=["*"],  # This allows all origins - change back to specific origins in production
-    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
-    expose_headers=["Content-Type", "Authorization"],
-    max_age=86400  # 24 hours
-)
-
+# Make sessions permanent
 @app.before_request
 def make_session_permanent():
     session.permanent = True
-    
+
+# Updated CORS configuration
+CORS(
+    app, 
+    supports_credentials=True, 
+    origins=["*"],  # Using * for development - change to specific origins in production
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
+    expose_headers=["Content-Type", "Authorization"],
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    max_age=86400  # 24 hours
+)
+
 # Database connection configuration
 DB_CONFIG = {
     'host': '104.198.30.234',
@@ -49,7 +51,7 @@ def get_db_connection():
     return mysql.connector.connect(**DB_CONFIG)
 
 # Test database connection
-@app.route("/test-db", methods=["GET"])
+@app.route("/test", methods=["GET"])
 def test_db():
     try:
         conn = get_db_connection()
@@ -95,7 +97,7 @@ def check_user(username):
     except Exception as e:
         return jsonify({"error": str(e)})
 
-# User login
+# User login with interests included in the response
 @app.route("/login", methods=["POST"])
 def login():
     try:
@@ -213,7 +215,8 @@ def signup():
             "username": username,
             "name": name,  # Use name instead of displayName
             "email": email,
-            "memberSince": current_date
+            "memberSince": current_date,
+            "interests": []  # Empty interests for new user
         }
         
         # Store in session
@@ -360,23 +363,113 @@ def logout():
     print("Successfuly Logged Out")
     return jsonify({"success": True, "message": "Logged out successfully"})
 
-# Update user interests
-@app.route("/user/interests", methods=["PUT"])
-def update_interests():
+# Get interests for a user
+@app.route("/get-interests", methods=["GET"])
+def get_interests():
     try:
-        if 'user' not in session:
-            return jsonify({"success": False, "error": "Not authenticated"}), 401
+        # Check if user is in session
+        print("Session data:", dict(session))
+        if "user" not in session:
+            print("User not found in session")
             
-        data = request.json
-        username = data.get("username")
-        interests = data.get("interests", [])
+            # Check for direct auth via headers as fallback
+            auth_header = request.headers.get('Authorization')
+            if auth_header:
+                print("Found Authorization header, checking...")
+                
+                if auth_header.startswith('Basic '):
+                    import base64
+                    credentials = base64.b64decode(auth_header[6:]).decode('utf-8')
+                    username, password = credentials.split(':')
+                    
+                    conn = get_db_connection()
+                    cursor = conn.cursor()
+                    
+                    cursor.execute("SELECT username FROM Users WHERE username = %s AND password = %s", 
+                                 (username, password))
+                    user_result = cursor.fetchone()
+                    
+                    if user_result:
+                        print(f"Authenticated user via header: {username}")
+                        # Proceed with this username
+                    else:
+                        print("Invalid credentials in Authorization header")
+                        return jsonify({"success": False, "error": "Invalid credentials"}), 401
+                else:
+                    print("Unsupported authorization method")
+                    return jsonify({"success": False, "error": "Not authenticated"}), 401
+            else:
+                return jsonify({"success": False, "error": "Not authenticated"}), 401
+        else:
+            username = session["user"]["username"]
+            print(f"User found in session: {username}")
         
+        # Get username from session or from auth header
+        if "user" in session:
+            username = session["user"]["username"]
+        # else username was set from the Auth header above
+        
+        print(f"Fetching interests for user: {username}")
+
+        # Get the connection
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Test if the connection works
+        cursor.execute("SELECT 1")
+        test_result = cursor.fetchone()
+        print(f"Database connection test: {test_result}")
+        
+        # Query to get user preferences/interests
+        query = """
+        SELECT p.keyword 
+        FROM Preferences p
+        JOIN Users u ON p.userID = u.userID
+        WHERE u.username = %s
+        """
+        
+        cursor.execute(query, (username,))
+        interests = [row[0] for row in cursor.fetchall()]
+        
+        print(f"Found interests for {username}: {interests}")
+        
+        cursor.close()
+        conn.close()
+
+        return jsonify({"success": True, "interests": interests})
+
+    except Exception as e:
+        print(f"Error in get_interests: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+# Save interests for a user
+@app.route("/save-interests", methods=["POST"])
+def save_interests():
+    try:
+        # Check if user is in session
+        if "user" not in session:
+            print("Session data:", dict(session))
+            print("User not found in session")
+            return jsonify({"success": False, "error": "Not authenticated"}), 401
+
+        # Get data from request
+        data = request.get_json()
+        if not data or "interests" not in data:
+            return jsonify({"success": False, "error": "Invalid data format"}), 400
+            
+        interests = data["interests"]
+        username = session["user"]["username"]
+        
+        print(f"Saving interests for user {username}: {interests}")
+        
+        # Get the connection
         conn = get_db_connection()
         cursor = conn.cursor()
         
         # Get user ID
-        id_query = "SELECT userID FROM Users WHERE username = %s"
-        cursor.execute(id_query, (username,))
+        cursor.execute("SELECT userID FROM Users WHERE username = %s", (username,))
         user_result = cursor.fetchone()
         
         if not user_result:
@@ -385,26 +478,118 @@ def update_interests():
             return jsonify({"success": False, "error": "User not found"}), 404
             
         user_id = user_result[0]
-            
-        # Delete existing preferences
-        delete_query = "DELETE FROM Preferences WHERE userID = %s"
-        cursor.execute(delete_query, (user_id,))
+        
+        # Clear existing preferences
+        cursor.execute("DELETE FROM Preferences WHERE userID = %s", (user_id,))
         
         # Insert new preferences
         for interest in interests:
-            insert_query = "INSERT INTO Preferences (userID, keyword) VALUES (%s, %s)"
-            cursor.execute(insert_query, (user_id, interest))
-            
+            cursor.execute("INSERT INTO Preferences (userID, keyword) VALUES (%s, %s)", 
+                          (user_id, interest))
+        
         conn.commit()
+        
+        # Update the session with the new interests
+        session["user"]["interests"] = interests
+        
         cursor.close()
         conn.close()
         
-        return jsonify({"success": True})
+        return jsonify({"success": True, "message": "Interests saved successfully"})
         
     except Exception as e:
-        print(f"Interests update error: {str(e)}")
+        print(f"Error in save_interests: {str(e)}")
+        import traceback
         traceback.print_exc()
-        return jsonify({"success": False, "error": f"An error occurred updating interests: {str(e)}"}), 500
+        return jsonify({"success": False, "error": str(e)}), 500
+
+# Remove an interest for a user
+@app.route("/remove-interest", methods=["POST"])
+def delete_interest():
+    try:
+        # Check if user is in session
+        if "user" not in session:
+            print("Session data:", dict(session))
+            print("User not found in session")
+            return jsonify({"success": False, "error": "Not authenticated"}), 401
+
+        data = request.get_json()
+        if not data or "interest" not in data:
+            print("Invalid request data:", data)
+            return jsonify({"success": False, "error": "Invalid request data"}), 400
+
+        username = session["user"]["username"]
+        interest = data["interest"]
+        
+        print(f"Removing interest '{interest}' for user '{username}'")
+
+        # Get database connection
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get user ID first
+        cursor.execute("SELECT userID FROM Users WHERE username = %s", (username,))
+        user_result = cursor.fetchone()
+        
+        if not user_result:
+            cursor.close()
+            conn.close()
+            return jsonify({"success": False, "error": "User not found"}), 404
+        
+        user_id = user_result[0]
+        
+        # Check if the interest exists before trying to remove it
+        cursor.execute(
+            "SELECT preferenceID FROM Preferences WHERE userID = %s AND keyword = %s", 
+            (user_id, interest)
+        )
+        
+        preference_result = cursor.fetchone()
+        if not preference_result:
+            cursor.close()
+            conn.close()
+            return jsonify({"success": False, "error": "Interest not found"}), 404
+        
+        # Delete the interest
+        cursor.execute(
+            "DELETE FROM Preferences WHERE userID = %s AND keyword = %s",
+            (user_id, interest)
+        )
+        
+        if cursor.rowcount == 0:
+            cursor.close()
+            conn.close()
+            return jsonify({"success": False, "error": "Failed to delete interest"}), 500
+        
+        conn.commit()
+        
+        # Update the session with the new list of interests
+        cursor.execute(
+            "SELECT keyword FROM Preferences WHERE userID = %s",
+            (user_id,)
+        )
+        
+        remaining_interests = [row[0] for row in cursor.fetchall()]
+        
+        # Update session
+        session["user"]["interests"] = remaining_interests
+        
+        cursor.close()
+        conn.close()
+        
+        print(f"Successfully removed interest '{interest}'. Remaining interests: {remaining_interests}")
+        
+        return jsonify({
+            "success": True, 
+            "message": "Interest removed successfully",
+            "remainingInterests": remaining_interests
+        })
+        
+    except Exception as e:
+        print(f"Error removing interest: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
 
 # Execute SQL directly for debugging - ONLY FOR DEVELOPMENT!
 @app.route("/execute-sql", methods=["POST"])
@@ -446,9 +631,21 @@ def execute_sql():
             "traceback": traceback.format_exc()
         }), 500
 
+# Special CORS preflight handler for recommendations
+@app.route('/get-recommendations', methods=['OPTIONS'])
+def handle_options_recommendations():
+    response = app.make_default_options_response()
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response
+
 # API Endpoint to Get Recommendations
 @app.route("/get-recommendations", methods=["POST"])
 def get_recommendations():
+    # Add CORS headers to this specific endpoint
+    response = None
     try:
         data = request.json
         interests = data.get("interests", [])
@@ -458,7 +655,8 @@ def get_recommendations():
         print(f"Generating recommendations for: Location: {location}, Weather: {weather}, Temperature: {temperature}, Interests: {interests}")
 
         if not interests:
-            return jsonify({"error": "Interests are required."}), 400
+            response = jsonify({"error": "Interests are required."}), 400
+            return response
 
         try:
             # Generate prompt and query LLM
@@ -468,7 +666,7 @@ def get_recommendations():
             # Return empty results if there's an error
             if isinstance(recommendations, dict) and "error" in recommendations:
                 print(f"Error from Gemini: {recommendations['error']}")
-                return jsonify({
+                response = jsonify({
                     "recommendations": {
                         "outdoor_activities": [],
                         "indoor_activities": [],
@@ -476,12 +674,16 @@ def get_recommendations():
                         "considerations": ["Could not generate recommendations at this time."]
                     }
                 })
+                return response
                 
-            return jsonify({"recommendations": recommendations})
+            response = jsonify({"recommendations": recommendations})
+            return response
         except Exception as e:
             print(f"Error calling Gemini: {str(e)}")
+            import traceback
+            traceback.print_exc()
             # Return empty but valid data structure on error
-            return jsonify({
+            response = jsonify({
                 "recommendations": {
                     "outdoor_activities": [],
                     "indoor_activities": [],
@@ -489,20 +691,35 @@ def get_recommendations():
                     "considerations": ["Could not generate recommendations at this time."]
                 }
             })
+            return response
     except Exception as e:
         print(f"Error in get_recommendations: {str(e)}")
         import traceback
         traceback.print_exc()
-        # Return empty but valid data structure on error
-        return jsonify({
-            "recommendations": {
-                "outdoor_activities": [],
-                "indoor_activities": [],
-                "local_events": [],
-                "considerations": ["Could not generate recommendations at this time."]
-            }
-        })
-    
+        
+        # Return an error response
+        response = jsonify({
+            "error": "An unexpected error occurred. Please try again later.",
+            "details": str(e)
+        }), 500
+        return response
+
+# API Endpoint to Get Weather
+@app.route("/get_weather", methods=["POST"])
+def weather():
+    global latest_location, latest_weather  # Store in global variables
+
+    data = request.json
+    lat, lon = data.get("latitude"), data.get("longitude")
+
+    if not lat or not lon:
+        return jsonify({"error": "Invalid coordinates"}), 400
+
+    latest_location = get_location(lat, lon)
+    latest_weather = get_weather(lat, lon)
+
+    return jsonify({"location": latest_location, "weather": latest_weather})
+
 # Database query to get Saved Activities for a user
 @app.route("/saved-activities", methods=["GET"])
 def get_saved_activities():
@@ -602,253 +819,6 @@ def remove_activity():
     
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
-
-# Save interests for a user
-# Add or modify these two functions in your app.py file
-
-# Get interests for a user
-# Get interests for a user
-@app.route("/get-interests", methods=["GET"])
-def get_interests():
-    try:
-        # Check if user is in session
-        print("Session data:", dict(session))
-        if "user" not in session:
-            print("User not found in session")
-            
-            # Check for direct auth via headers as fallback
-            auth_header = request.headers.get('Authorization')
-            if auth_header:
-                print("Found Authorization header, checking...")
-                
-                if auth_header.startswith('Basic '):
-                    import base64
-                    credentials = base64.b64decode(auth_header[6:]).decode('utf-8')
-                    username, password = credentials.split(':')
-                    
-                    conn = get_db_connection()
-                    cursor = conn.cursor()
-                    
-                    cursor.execute("SELECT username FROM Users WHERE username = %s AND password = %s", 
-                                 (username, password))
-                    user_result = cursor.fetchone()
-                    
-                    if user_result:
-                        print(f"Authenticated user via header: {username}")
-                        # Proceed with this username
-                    else:
-                        print("Invalid credentials in Authorization header")
-                        return jsonify({"success": False, "error": "Invalid credentials"}), 401
-                else:
-                    print("Unsupported authorization method")
-                    return jsonify({"success": False, "error": "Not authenticated"}), 401
-            else:
-                return jsonify({"success": False, "error": "Not authenticated"}), 401
-        else:
-            username = session["user"]["username"]
-            print(f"User found in session: {username}")
-        
-        # Get username from session or from auth header
-        if "user" in session:
-            username = session["user"]["username"]
-        # else username was set from the Auth header above
-        
-        print(f"Fetching interests for user: {username}")
-
-        # Get the connection
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Test if the connection works
-        cursor.execute("SELECT 1")
-        test_result = cursor.fetchone()
-        print(f"Database connection test: {test_result}")
-        
-        # Query to get user preferences/interests
-        query = """
-        SELECT p.keyword 
-        FROM Preferences p
-        JOIN Users u ON p.userID = u.userID
-        WHERE u.username = %s
-        """
-        
-        cursor.execute(query, (username,))
-        interests = [row[0] for row in cursor.fetchall()]
-        
-        print(f"Found interests for {username}: {interests}")
-        
-        cursor.close()
-        conn.close()
-
-        return jsonify({"success": True, "interests": interests})
-
-    except Exception as e:
-        print(f"Error in get_interests: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "error": str(e)}), 500
-
-# Save interests for a user - Enhanced with better session handling
-@app.route("/save-interests", methods=["POST"])
-def save_interests():
-    try:
-        # Check if user is in session
-        if "user" not in session:
-            # For debugging - print the session contents
-            print("Session data:", session)
-            print("User not found in session")
-            return jsonify({"success": False, "error": "Not authenticated"}), 401
-
-        # Get data from request
-        data = request.get_json()
-        if not data or "interests" not in data:
-            return jsonify({"success": False, "error": "Invalid data format"}), 400
-            
-        interests = data["interests"]
-        username = session["user"]["username"]
-        
-        print(f"Saving interests for user {username}: {interests}")
-        
-        # Get the connection
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Get user ID
-        cursor.execute("SELECT userID FROM Users WHERE username = %s", (username,))
-        user_result = cursor.fetchone()
-        
-        if not user_result:
-            cursor.close()
-            conn.close()
-            return jsonify({"success": False, "error": "User not found"}), 404
-            
-        user_id = user_result[0]
-        
-        # Clear existing preferences
-        cursor.execute("DELETE FROM Preferences WHERE userID = %s", (user_id,))
-        
-        # Insert new preferences
-        for interest in interests:
-            cursor.execute("INSERT INTO Preferences (userID, keyword) VALUES (%s, %s)", 
-                          (user_id, interest))
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
-        
-        return jsonify({"success": True, "message": "Interests saved successfully"})
-        
-    except Exception as e:
-        print(f"Error in save_interests: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "error": str(e)}), 500
-
-# Remove an interest for a user
-# Add this endpoint to your app.py file
-
-@app.route("/remove-interest", methods=["POST"])
-def remove_interest():
-    try:
-        # Check if user is in session
-        if "user" not in session:
-            print("Session data:", dict(session))
-            print("User not found in session")
-            return jsonify({"success": False, "error": "Not authenticated"}), 401
-
-        data = request.get_json()
-        if not data or "interest" not in data:
-            print("Invalid request data:", data)
-            return jsonify({"success": False, "error": "Invalid request data"}), 400
-
-        username = session["user"]["username"]
-        interest = data["interest"]
-        
-        print(f"Removing interest '{interest}' for user '{username}'")
-
-        # Get database connection
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Get user ID first
-        cursor.execute("SELECT userID FROM Users WHERE username = %s", (username,))
-        user_result = cursor.fetchone()
-        
-        if not user_result:
-            cursor.close()
-            conn.close()
-            return jsonify({"success": False, "error": "User not found"}), 404
-        
-        user_id = user_result[0]
-        
-        # Check if the interest exists before trying to remove it
-        cursor.execute(
-            "SELECT preferenceID FROM Preferences WHERE userID = %s AND keyword = %s", 
-            (user_id, interest)
-        )
-        
-        preference_result = cursor.fetchone()
-        if not preference_result:
-            cursor.close()
-            conn.close()
-            return jsonify({"success": False, "error": "Interest not found"}), 404
-        
-        # Delete the interest
-        cursor.execute(
-            "DELETE FROM Preferences WHERE userID = %s AND keyword = %s",
-            (user_id, interest)
-        )
-        
-        if cursor.rowcount == 0:
-            cursor.close()
-            conn.close()
-            return jsonify({"success": False, "error": "Failed to delete interest"}), 500
-        
-        conn.commit()
-        
-        # Update the session with the new list of interests
-        cursor.execute(
-            "SELECT keyword FROM Preferences WHERE userID = %s",
-            (user_id,)
-        )
-        
-        remaining_interests = [row[0] for row in cursor.fetchall()]
-        
-        # Update session
-        session["user"]["interests"] = remaining_interests
-        
-        cursor.close()
-        conn.close()
-        
-        print(f"Successfully removed interest '{interest}'. Remaining interests: {remaining_interests}")
-        
-        return jsonify({
-            "success": True, 
-            "message": "Interest removed successfully",
-            "remainingInterests": remaining_interests
-        })
-        
-    except Exception as e:
-        print(f"Error removing interest: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "error": str(e)}), 500
-
-# API Endpoint to Get Weather
-@app.route("/get_weather", methods=["POST"])
-def weather():
-    global latest_location, latest_weather  # Store in global variables
-
-    data = request.json
-    lat, lon = data.get("latitude"), data.get("longitude")
-
-    if not lat or not lon:
-        return jsonify({"error": "Invalid coordinates"}), 400
-
-    latest_location = get_location(lat, lon)
-    latest_weather = get_weather(lat, lon)
-
-    return jsonify({"location": latest_location, "weather": latest_weather})
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5001))

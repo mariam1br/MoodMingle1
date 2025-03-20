@@ -74,75 +74,82 @@ const DiscoverPage = () => {
     try {
       if (user) {
         console.log('Saving interests to database for user:', user.username);
-        const response = await axios.post(
-          `${API_BASE_URL}/save-interests`,
-          { interests: uniqueInterests },
-          { withCredentials: true }
-        );
-  
-        if (!response.data.success) {
-          console.error("Failed to save interests:", response.data.error);
-          // Don't clear user interests on error - just log it
+        try {
+          const saveResponse = await axios.post(
+            `${API_BASE_URL}/save-interests`,
+            { interests: uniqueInterests },
+            { 
+              withCredentials: true,
+              headers: {
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+      
+          if (!saveResponse.data.success) {
+            console.error("Failed to save interests:", saveResponse.data.error);
+          }
+        } catch (err) {
+          console.error("Error saving interests:", err);
+          // Continue with activity generation even if interest saving fails
         }
       }
   
       // Fetch activity recommendations
-      console.log('Fetching activity recommendations with:', { 
+      const fullUrl = `${API_BASE_URL}/get-recommendations`;
+      console.log(`Attempting to call: ${fullUrl}`);
+      console.log('Request data:', { 
         interests: uniqueInterests, 
-        location, 
-        weather: weather?.condition,
-        temperature: weather?.temperature,
+        location: location || "Unknown", 
+        weather: weather?.condition || "Any",
+        temperature: weather?.temperature || 20
       });
       
-      const response = await fetch(`${API_BASE_URL}/get-recommendations`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: 'include', // Important for maintaining session
-        body: JSON.stringify({
+      // Use axios instead of fetch for consistency
+      const response = await axios({
+        method: 'post',
+        url: fullUrl,
+        data: {
           interests: uniqueInterests,
           location: location || "Unknown",
           weather: weather?.condition || "Any",
           temperature: weather?.temperature || 20,
-        }),
+        },
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        withCredentials: true
       });
-  
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to generate recommendations");
-      }
-  
-      const data = await response.json();
-      console.log('Received recommendations:', data);
-
+    
+      console.log('Received recommendations:', response.data);
+    
       // Check if there's an error in the response
-      if (data.error) {
-        throw new Error(data.error);
+      if (response.data.error) {
+        throw new Error(response.data.error);
       }
-
+    
       // Defensive coding to handle unexpected data structures
       const transformedActivities = [];
       
       // Safely add outdoor activities if they exist
-      if (data.recommendations && 
-          data.recommendations.outdoor_activities && 
-          Array.isArray(data.recommendations.outdoor_activities)) {
-        transformedActivities.push(...data.recommendations.outdoor_activities);
+      if (response.data.recommendations && 
+          response.data.recommendations.outdoor_activities && 
+          Array.isArray(response.data.recommendations.outdoor_activities)) {
+        transformedActivities.push(...response.data.recommendations.outdoor_activities);
       }
       
       // Safely add indoor activities if they exist
-      if (data.recommendations && 
-          data.recommendations.indoor_activities && 
-          Array.isArray(data.recommendations.indoor_activities)) {
-        transformedActivities.push(...data.recommendations.indoor_activities);
+      if (response.data.recommendations && 
+          response.data.recommendations.indoor_activities && 
+          Array.isArray(response.data.recommendations.indoor_activities)) {
+        transformedActivities.push(...response.data.recommendations.indoor_activities);
       }
       
       // Safely add local events if they exist
-      if (data.recommendations && 
-          data.recommendations.local_events && 
-          Array.isArray(data.recommendations.local_events)) {
-        transformedActivities.push(...data.recommendations.local_events);
+      if (response.data.recommendations && 
+          response.data.recommendations.local_events && 
+          Array.isArray(response.data.recommendations.local_events)) {
+        transformedActivities.push(...response.data.recommendations.local_events);
       }
       
       // Check if we received any activities
@@ -164,9 +171,21 @@ const DiscoverPage = () => {
       setHasGenerated(true);
     } catch (error) {
       console.error("Error generating activities:", error);
+      
+      // More detailed error logging
+      if (error.response) {
+        // The request was made and the server responded with a status code outside of 2xx
+        console.error("Response data:", error.response.data);
+        console.error("Response status:", error.response.status);
+        console.error("Response headers:", error.response.headers);
+      } else if (error.request) {
+        // The request was made but no response was received
+        console.error("Request error:", error.request);
+      }
+      
       setErrorMessage(error.message || "Failed to generate activities. Please try again with different interests.");
       
-      // Clear activities on error rather than using fallbacks
+      // Clear activities on error
       setActivities([]);
       setHasGenerated(false);
     } finally {
@@ -209,35 +228,45 @@ const DiscoverPage = () => {
   };
 
   useEffect(() => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords;
-          console.log('Got user coordinates:', latitude, longitude);
-
-          try {
-            const response = await axios.post(`${API_BASE_URL}/get_weather`, {
-              latitude,
-              longitude,
-            });
-
-            console.log('Weather data received:', response.data);
-            setLocation(response.data.location);
-            setWeather({
-              condition: response.data.weather.condition,
-              temperature: response.data.weather.temperature,
-            });
-          } catch (err) {
-            console.error("Weather fetch error:", err);
-            setErrorMessage("Failed to fetch weather data.");
-          }
-        },
-        (error) => {
-          console.error('Geolocation error:', error);
-          setErrorMessage("Location access denied.");
-        }
-      );
+    if (!("geolocation" in navigator)) {
+      console.log('Geolocation not available');
+      setLocation("Unknown");  // Set a default location
+      return;
     }
+    
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        console.log('Got user coordinates:', latitude, longitude);
+
+        try {
+          const response = await axios.post(`${API_BASE_URL}/get_weather`, {
+            latitude,
+            longitude,
+          }, {
+            withCredentials: true,
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+
+          console.log('Weather data received:', response.data);
+          setLocation(response.data.location);
+          setWeather({
+            condition: response.data.weather.condition,
+            temperature: response.data.weather.temperature,
+          });
+        } catch (err) {
+          console.error("Weather fetch error:", err);
+          setErrorMessage("Failed to fetch weather data.");
+        }
+      },
+      (error) => {
+        console.error('Geolocation error:', error);
+        setErrorMessage("Location access denied.");
+        setLocation("Unknown");  // Set a default location on error
+      }
+    );
   }, []);
   
   return (
