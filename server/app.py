@@ -416,8 +416,8 @@ def get_recommendations():
         interests = data.get("interests", [])
         location = data.get("location", "Unknown")
         weather = data.get("weather", "Unknown")
-        temperature = data.get("temeprature", "Unknown")
-        print(f"Generating recommendations for: Location: {location}, Weather: {weather}, Temperatre: {temperature}, Interests: {interests}")
+        temperature = data.get("temperature", "Unknown")
+        print(f"Generating recommendations for: Location: {location}, Weather: {weather}, Temperature: {temperature}, Interests: {interests}")
 
         if not interests:
             return jsonify({"error": "Interests are required."}), 400
@@ -425,13 +425,38 @@ def get_recommendations():
         # Generate prompt and query LLM
         prompt = create_prompt(interests, location, weather, temperature)
         recommendations = query_gemini(prompt)
+        
+        # Log the recommendations for debugging
+        print(f"Recommendations received: {recommendations}")
+        
+        # Check if we got the expected response structure
+        if "error" in recommendations:
+            print(f"Error from Gemini: {recommendations['error']}")
+            return jsonify({"error": recommendations['error']}), 500
+            
+        # Validate response structure
+        if not isinstance(recommendations, dict) or "outdoor_activities" not in recommendations:
+            print(f"Unexpected response structure: {recommendations}")
+            return jsonify({
+                "recommendations": {
+                    "outdoor_activities": [],
+                    "indoor_activities": [],
+                    "local_events": []
+                }
+            })
 
         return jsonify({"recommendations": recommendations})
     except Exception as e:
         print(f"Error in get_recommendations: {str(e)}")
         traceback.print_exc()
-        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
-
+        return jsonify({
+            "error": f"An error occurred: {str(e)}",
+            "recommendations": {
+                "outdoor_activities": [],
+                "indoor_activities": [],
+                "local_events": []
+            }
+        }), 500
 # Database query to get Saved Activities for a user
 @app.route("/saved-activities", methods=["GET"])
 def get_saved_activities():

@@ -81,21 +81,42 @@ const DiscoverPage = () => {
   
       const data = await response.json();
       console.log('Received recommendations:', data);
-  
-      const transformedActivities = [
-        ...data.recommendations.outdoor_activities,
-        ...data.recommendations.indoor_activities,
-        ...data.recommendations.local_events,
-      ].map((activity) => ({
-        title: activity.name,
-        category: activity.genre,
-        location: activity.location,
-        weather: activity.weather,
-        description: activity.description,
+
+      // Defensive coding to handle unexpected data structures
+      const transformedActivities = [];
+      
+      // Safely add outdoor activities if they exist
+      if (data.recommendations && 
+          data.recommendations.outdoor_activities && 
+          Array.isArray(data.recommendations.outdoor_activities)) {
+        transformedActivities.push(...data.recommendations.outdoor_activities);
+      }
+      
+      // Safely add indoor activities if they exist
+      if (data.recommendations && 
+          data.recommendations.indoor_activities && 
+          Array.isArray(data.recommendations.indoor_activities)) {
+        transformedActivities.push(...data.recommendations.indoor_activities);
+      }
+      
+      // Safely add local events if they exist
+      if (data.recommendations && 
+          data.recommendations.local_events && 
+          Array.isArray(data.recommendations.local_events)) {
+        transformedActivities.push(...data.recommendations.local_events);
+      }
+      
+      // Map the combined activities with fallback values
+      const mappedActivities = transformedActivities.map((activity) => ({
+        title: activity.name || "Unknown Activity",
+        category: activity.genre || "Other",
+        location: activity.location || "Unknown",
+        weather: activity.weather || "Any",
+        description: activity.description || "No description available",
       }));
-  
-      console.log('Transformed activities:', transformedActivities);
-      setActivities(transformedActivities);
+      
+      console.log('Transformed activities:', mappedActivities);
+      setActivities(mappedActivities);
       setHasGenerated(true);
     } catch (error) {
       console.error("Error generating activities:", error);
