@@ -30,7 +30,7 @@ def make_session_permanent():
 CORS(
     app, 
     supports_credentials=True, 
-    origins=["*"],  # Using * for development - change to specific origins in production
+    origins=["https://moodmingle-1w1q.onrender.com"],  # Using * for development - change to specific origins in production
     allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
     expose_headers=["Content-Type", "Authorization"],
     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
