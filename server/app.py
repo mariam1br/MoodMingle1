@@ -569,35 +569,94 @@ def save_activity():
         return jsonify({"success": False, "error": str(e)}), 500
 
 # Remove an activity for a user
-@app.route("/remove-activity", methods=["POST"])
-def remove_activity():
-    if "user" not in session:
-        return jsonify({"success": False, "error": "Not authenticated"}), 401
+# Add this endpoint to your app.py file
 
-    username = session["user"]["username"]
-    data = request.json
-    title = data.get("title")
-
-    if not title:
-        return jsonify({"success": False, "error": "Missing activity title"}), 400
-
+@app.route("/remove-interest", methods=["POST"])
+def remove_interest():
     try:
-        datab = DatabaseConnection(dbname="MoodMingle", user="moodmingle_user", password="team2", host="104.198.30.234", port=3306)
-        datab.connect()
-        db_queries = dq(datab.connection)
+        # Check if user is in session
+        if "user" not in session:
+            print("Session data:", dict(session))
+            print("User not found in session")
+            return jsonify({"success": False, "error": "Not authenticated"}), 401
 
-        # Delete the activity from the database
-        success = db_queries.delete_activity(username, title)
-        DatabaseConnection.disconnect(datab)
+        data = request.get_json()
+        if not data or "interest" not in data:
+            print("Invalid request data:", data)
+            return jsonify({"success": False, "error": "Invalid request data"}), 400
 
-        if success:
-            return jsonify({"success": True, "message": "Activity removed successfully"})
-        else:
-            return jsonify({"success": False, "error": "Failed to remove activity"})
-    
+        username = session["user"]["username"]
+        interest = data["interest"]
+        
+        print(f"Removing interest '{interest}' for user '{username}'")
+
+        # Get database connection
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get user ID first
+        cursor.execute("SELECT userID FROM Users WHERE username = %s", (username,))
+        user_result = cursor.fetchone()
+        
+        if not user_result:
+            cursor.close()
+            conn.close()
+            return jsonify({"success": False, "error": "User not found"}), 404
+        
+        user_id = user_result[0]
+        
+        # Check if the interest exists before trying to remove it
+        cursor.execute(
+            "SELECT preferenceID FROM Preferences WHERE userID = %s AND keyword = %s", 
+            (user_id, interest)
+        )
+        
+        preference_result = cursor.fetchone()
+        if not preference_result:
+            cursor.close()
+            conn.close()
+            return jsonify({"success": False, "error": "Interest not found"}), 404
+        
+        # Delete the interest
+        cursor.execute(
+            "DELETE FROM Preferences WHERE userID = %s AND keyword = %s",
+            (user_id, interest)
+        )
+        
+        if cursor.rowcount == 0:
+            cursor.close()
+            conn.close()
+            return jsonify({"success": False, "error": "Failed to delete interest"}), 500
+        
+        conn.commit()
+        
+        # Update the session with the new list of interests
+        cursor.execute(
+            "SELECT keyword FROM Preferences WHERE userID = %s",
+            (user_id,)
+        )
+        
+        remaining_interests = [row[0] for row in cursor.fetchall()]
+        
+        # Update session
+        session["user"]["interests"] = remaining_interests
+        
+        cursor.close()
+        conn.close()
+        
+        print(f"Successfully removed interest '{interest}'. Remaining interests: {remaining_interests}")
+        
+        return jsonify({
+            "success": True, 
+            "message": "Interest removed successfully",
+            "remainingInterests": remaining_interests
+        })
+        
     except Exception as e:
+        print(f"Error removing interest: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"success": False, "error": str(e)}), 500
-
 # Save interests for a user
 # Add or modify these two functions in your app.py file
 

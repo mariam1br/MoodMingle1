@@ -125,30 +125,49 @@ const AccountPage = () => {
     console.log(`Deleting interest: ${interestToDelete}`);
   
     try {
-      const response = await fetch(`${API_BASE_URL}/remove-interest`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include", // Keep the session alive
-        body: JSON.stringify({ interest: interestToDelete }),
-      });
+      // Make sure to use axios instead of fetch for consistency
+      const response = await axios.post(
+        `${API_BASE_URL}/remove-interest`,
+        { interest: interestToDelete },
+        { withCredentials: true } // Important for maintaining session
+      );
   
-      const data = await response.json();
-  
-      if (!response.ok) {
-        console.error("Failed to remove interest:", data.error);
-        alert(`Error: ${data.error}`);
-        return;
+      if (response.data.success) {
+        console.log("Interest removed successfully:", response.data);
+        
+        // Update local state
+        setUserInterests((prev) => prev.filter((interest) => interest !== interestToDelete));
+        
+        // Update the user object in AuthContext if you have a way to do that
+        // For example, if you have an updateUser function in AuthContext:
+        // updateUser({ interests: response.data.remainingInterests });
+        
+        // Alternative approach - update the interests directly in the user object
+        if (user) {
+          user.interests = response.data.remainingInterests;
+        }
+      } else {
+        console.error("Failed to remove interest:", response.data.error);
+        alert(`Error: ${response.data.error}`);
       }
-  
-      console.log("Interest removed successfully:", data);
-  
-      // Update UI state after a successful backend response
-      setUserInterests((prev) => prev.filter((interest) => interest !== interestToDelete));
     } catch (error) {
       console.error("Error removing interest:", error);
-      alert("Something went wrong. Please try again.");
+      // More detailed error logging
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        console.error("Response data:", error.response.data);
+        console.error("Response status:", error.response.status);
+        alert(`Error: ${error.response.data.error || "Failed to remove interest"}`);
+      } else if (error.request) {
+        // The request was made but no response was received
+        console.error("No response received:", error.request);
+        alert("Error: Server did not respond. Please try again.");
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.error("Request error:", error.message);
+        alert("Something went wrong. Please try again.");
+      }
     }
   };
   

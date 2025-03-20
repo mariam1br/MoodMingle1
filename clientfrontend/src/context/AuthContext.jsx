@@ -12,6 +12,7 @@ export const AuthProvider = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [, forceUpdate] = useState(); // Used to force re-renders when needed
 
   // Check if user is already logged in when the app loads
   useEffect(() => {
@@ -199,6 +200,26 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Function to update user data (like when interests change)
+  const updateUser = (userData) => {
+    setUser(prevUser => {
+      if (!prevUser) return userData;
+      
+      // Create updated user object
+      const updatedUser = {
+        ...prevUser,
+        ...userData
+      };
+      
+      console.log('Updated user in AuthContext:', updatedUser);
+      
+      // Force a re-render to ensure components using the user object update
+      forceUpdate(Date.now());
+      
+      return updatedUser;
+    });
+  };
+
   // Updated to use the fetching function
   const updateUserInterests = async () => {
     if (isLoggedIn) {
@@ -262,6 +283,7 @@ export const AuthProvider = ({ children }) => {
         logout,
         updateUserInterests,
         updateUserProfile,
+        updateUser,
         isLoading,
         executeSql
       }}
