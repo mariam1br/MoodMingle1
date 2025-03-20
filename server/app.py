@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 
 app = Flask(__name__)
 app.secret_key = "kbo7c43w7898jbs"  # Required for session management
-CORS(app, supports_credentials=True)  # Enable CORS for frontend-backend communication
+CORS(app, supports_credentials=True, origins=["https://moodmingle.onrender.com"])
 
 # Database connection configuration
 DB_CONFIG = {
@@ -645,4 +645,5 @@ def weather():
     return jsonify({"location": latest_location, "weather": latest_weather})
 
 if __name__ == "__main__":
-    app.run(port=5001, debug=True)
+    port = int(os.environ.get("PORT", 5001))
+    app.run(host="0.0.0.0", port=port)
