@@ -566,66 +566,104 @@ def remove_activity():
         return jsonify({"success": False, "error": str(e)}), 500
 
 # Save interests for a user
-@app.route("/save-interests", methods=["POST"])
-def save_interests():
-    if "user" not in session:
-        return jsonify({"success": False, "error": "Not authenticated"}), 401
-
-    username = session["user"]["username"]
-    data = request.json
-    interests = data.get("interests", [])
-
-    if not interests:
-        return jsonify({"success": False, "error": "No interests provided"}), 400
-
-    try:
-        datab = DatabaseConnection(dbname="MoodMingle", user="moodmingle_user", password="team2", host="104.198.30.234", port=3306)
-        datab.connect()
-        db_queries = dq(datab.connection)
-
-        existing_interests = set(db_queries.get_preferences(username) or [])
-        new_interests_set = set(interests)
-
-        interests_to_add = list(new_interests_set - existing_interests)
-
-        if interests_to_add:
-            success = db_queries.save_preferences(username, interests_to_add)
-        else:
-            success = True
-
-        DatabaseConnection.disconnect(datab)
-
-        if success:
-            return jsonify({"success": True, "message": "Interests saved successfully"})
-        else:
-            return jsonify({"success": False, "error": "Failed to save interests"})
-
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+# Add or modify these two functions in your app.py file
 
 # Get interests for a user
 @app.route("/get-interests", methods=["GET"])
 def get_interests():
-    if "user" not in session:
-        return jsonify({"success": False, "error": "Not authenticated"}), 401
-
-    username = session["user"]["username"]
-
     try:
-        datab = DatabaseConnection(dbname="MoodMingle", user="moodmingle_user", password="team2", host="104.198.30.234", port=3306)
-        datab.connect()
-        db_queries = dq(datab.connection)
+        # Check if user is in session
+        if "user" not in session:
+            # For debugging - print the session contents
+            print("Session data:", session)
+            print("User not found in session")
+            return jsonify({"success": False, "error": "Not authenticated"}), 401
 
-        # Fetch user interests from the database
-        interests = db_queries.get_preferences(username)
-        DatabaseConnection.disconnect(datab)
+        username = session["user"]["username"]
+        print(f"Fetching interests for user: {username}")
 
-        if interests is None:
-            return jsonify({"success": False, "error": "Failed to fetch interests"}), 500
+        # Get the connection
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Query to get user preferences/interests
+        query = """
+        SELECT p.keyword 
+        FROM Preferences p
+        JOIN Users u ON p.userID = u.userID
+        WHERE u.username = %s
+        """
+        
+        cursor.execute(query, (username,))
+        interests = [row[0] for row in cursor.fetchall()]
+        
+        print(f"Found interests for {username}: {interests}")
+        
+        cursor.close()
+        conn.close()
 
         return jsonify({"success": True, "interests": interests})
 
     except Exception as e:
+        print(f"Error in get_interests: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+# Save interests for a user - Enhanced with better session handling
+@app.route("/save-interests", methods=["POST"])
+def save_interests():
+    try:
+        # Check if user is in session
+        if "user" not in session:
+            # For debugging - print the session contents
+            print("Session data:", session)
+            print("User not found in session")
+            return jsonify({"success": False, "error": "Not authenticated"}), 401
+
+        # Get data from request
+        data = request.get_json()
+        if not data or "interests" not in data:
+            return jsonify({"success": False, "error": "Invalid data format"}), 400
+            
+        interests = data["interests"]
+        username = session["user"]["username"]
+        
+        print(f"Saving interests for user {username}: {interests}")
+        
+        # Get the connection
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get user ID
+        cursor.execute("SELECT userID FROM Users WHERE username = %s", (username,))
+        user_result = cursor.fetchone()
+        
+        if not user_result:
+            cursor.close()
+            conn.close()
+            return jsonify({"success": False, "error": "User not found"}), 404
+            
+        user_id = user_result[0]
+        
+        # Clear existing preferences
+        cursor.execute("DELETE FROM Preferences WHERE userID = %s", (user_id,))
+        
+        # Insert new preferences
+        for interest in interests:
+            cursor.execute("INSERT INTO Preferences (userID, keyword) VALUES (%s, %s)", 
+                          (user_id, interest))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return jsonify({"success": True, "message": "Interests saved successfully"})
+        
+    except Exception as e:
+        print(f"Error in save_interests: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"success": False, "error": str(e)}), 500
 
 # Remove an interest for a user

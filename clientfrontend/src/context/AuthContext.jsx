@@ -1,10 +1,12 @@
-// src/context/AuthContext.jsx
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import axios from 'axios';
 
 const AuthContext = createContext(null);
 
 const API_BASE_URL = 'https://moodmingle-backend.onrender.com';
+
+// Set axios default to include credentials
+axios.defaults.withCredentials = true;
 
 export const AuthProvider = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -30,7 +32,10 @@ export const AuthProvider = ({ children }) => {
           setIsLoggedIn(true);
           
           // Fetch user interests immediately after login confirmation
-          fetchUserInterests();
+          // Add a small delay to ensure the session is established
+          setTimeout(() => {
+            fetchUserInterests();
+          }, 500);
         } else {
           // If the user is a guest or none exists, ensure logged out state
           setUser(null);
@@ -59,10 +64,16 @@ export const AuthProvider = ({ children }) => {
       console.log('Fetched interests response:', response.data);
       
       if (response.data.success) {
-        setUser((prevUser) => ({
-          ...prevUser,
-          interests: response.data.interests
-        }));
+        // Update user state with interests
+        setUser(prevUser => {
+          const updatedUser = {
+            ...prevUser,
+            interests: response.data.interests || []
+          };
+          console.log('Updated user with interests:', updatedUser);
+          return updatedUser;
+        });
+        
         return { success: true, interests: response.data.interests };
       } else {
         console.error('Failed to fetch interests:', response.data.error);
@@ -91,13 +102,25 @@ export const AuthProvider = ({ children }) => {
       console.log('Login response:', response.data);
 
       if (response.data.success) {
-        setUser(response.data.user);
+        // Create a user object with interests property (even if empty initially)
+        const userWithInterests = {
+          ...response.data.user,
+          interests: []
+        };
+        
+        setUser(userWithInterests);
         setIsLoggedIn(true);
         
-        // Fetch interests immediately after successful login
-        fetchUserInterests();
+        // Add a delay before fetching interests to ensure session is established
+        setTimeout(async () => {
+          try {
+            await fetchUserInterests();
+          } catch (err) {
+            console.error("Error fetching interests after login:", err);
+          }
+        }, 1000);
         
-        return { success: true, user: response.data.user };
+        return { success: true, user: userWithInterests };
       } else {
         return { success: false, error: response.data.error || "Login failed" };
       }
@@ -127,14 +150,26 @@ export const AuthProvider = ({ children }) => {
       console.log('Signup response:', response.data);
       
       if (response.data.success) {
+        // Create a user object with interests property (even if empty initially)
+        const userWithInterests = {
+          ...response.data.user,
+          interests: []
+        };
+        
         // Auto-login after successful signup
-        setUser(response.data.user);
+        setUser(userWithInterests);
         setIsLoggedIn(true);
         
-        // Fetch interests immediately after successful signup
-        fetchUserInterests();
+        // Add a delay before fetching interests to ensure session is established
+        setTimeout(async () => {
+          try {
+            await fetchUserInterests();
+          } catch (err) {
+            console.error("Error fetching interests after signup:", err);
+          }
+        }, 1000);
         
-        return { success: true, user: response.data.user };
+        return { success: true, user: userWithInterests };
       } else {
         return { success: false, error: response.data.error || "Signup failed" };
       }

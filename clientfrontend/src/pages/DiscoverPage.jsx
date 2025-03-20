@@ -7,8 +7,11 @@ import axios from "axios";
   
 const API_BASE_URL = "https://moodmingle-backend.onrender.com"; 
 
+// Set axios default to include credentials
+axios.defaults.withCredentials = true;
+
 const DiscoverPage = () => {
-  const { user } = useAuth();
+  const { user, updateUserInterests } = useAuth();
   console.log('DiscoverPage - Current user:', user);
   
   const [activities, setActivities] = useState([]);
@@ -22,17 +25,46 @@ const DiscoverPage = () => {
 
   // Load user interests if logged in
   useEffect(() => {
-    if (user && user.interests) {
-      console.log('Setting user interests from user object:', user.interests);
-      const uniqueInterests = [...new Set(user.interests)];
-      setUserInterests(uniqueInterests);
-    }
-  }, [user]);
+    const loadUserInterests = async () => {
+      if (user) {
+        console.log('User is logged in, checking interests');
+        
+        if (user.interests && user.interests.length > 0) {
+          console.log('Setting user interests from user object:', user.interests);
+          const uniqueInterests = [...new Set(user.interests)];
+          setUserInterests(uniqueInterests);
+        } else {
+          console.log('No interests found in user object, trying to fetch them');
+          // Try to update interests from backend
+          try {
+            const result = await updateUserInterests();
+            if (result.success && result.interests && result.interests.length > 0) {
+              console.log('Fetched interests from API:', result.interests);
+              setUserInterests(result.interests);
+            } else {
+              console.log('No interests found from API');
+            }
+          } catch (error) {
+            console.error('Error fetching user interests:', error);
+          }
+        }
+      } else {
+        console.log('No user logged in');
+      }
+    };
+    
+    loadUserInterests();
+  }, [user, updateUserInterests]);
 
   const handleGenerateActivities = async (selectedInterests) => {
     setErrorMessage("");
     const uniqueInterests = [...new Set(selectedInterests)];
     console.log('Generating activities with interests:', uniqueInterests);
+    
+    if (uniqueInterests.length === 0) {
+      setErrorMessage("Please select at least one interest");
+      return;
+    }
     
     setGeneratedInterests(uniqueInterests);
     setUserInterests(uniqueInterests);
@@ -50,7 +82,7 @@ const DiscoverPage = () => {
   
         if (!response.data.success) {
           console.error("Failed to save interests:", response.data.error);
-          setUserInterests([]); 
+          // Don't clear user interests on error - just log it
         }
       }
   
@@ -67,40 +99,76 @@ const DiscoverPage = () => {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: 'include', // Important for maintaining session
         body: JSON.stringify({
           interests: uniqueInterests,
-          location: location,
-          weather: weather?.condition,
-          temperature: weather?.temperature,
+          location: location || "Unknown",
+          weather: weather?.condition || "Any",
+          temperature: weather?.temperature || 20,
         }),
       });
   
       if (!response.ok) {
-        throw new Error("Network response was not ok");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to generate recommendations");
       }
   
       const data = await response.json();
       console.log('Received recommendations:', data);
-  
-      const transformedActivities = [
-        ...data.recommendations.outdoor_activities,
-        ...data.recommendations.indoor_activities,
-        ...data.recommendations.local_events,
-      ].map((activity) => ({
-        title: activity.name,
-        category: activity.genre,
-        location: activity.location,
-        weather: activity.weather,
-        description: activity.description,
+
+      // Check if there's an error in the response
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      // Defensive coding to handle unexpected data structures
+      const transformedActivities = [];
+      
+      // Safely add outdoor activities if they exist
+      if (data.recommendations && 
+          data.recommendations.outdoor_activities && 
+          Array.isArray(data.recommendations.outdoor_activities)) {
+        transformedActivities.push(...data.recommendations.outdoor_activities);
+      }
+      
+      // Safely add indoor activities if they exist
+      if (data.recommendations && 
+          data.recommendations.indoor_activities && 
+          Array.isArray(data.recommendations.indoor_activities)) {
+        transformedActivities.push(...data.recommendations.indoor_activities);
+      }
+      
+      // Safely add local events if they exist
+      if (data.recommendations && 
+          data.recommendations.local_events && 
+          Array.isArray(data.recommendations.local_events)) {
+        transformedActivities.push(...data.recommendations.local_events);
+      }
+      
+      // Check if we received any activities
+      if (transformedActivities.length === 0) {
+        throw new Error("No activities were found for your interests. Please try again with different interests.");
+      }
+      
+      // Map the combined activities with fallback values
+      const mappedActivities = transformedActivities.map((activity) => ({
+        title: activity.name || "Unknown Activity",
+        category: activity.genre || "Other",
+        location: activity.location || "Unknown",
+        weather: activity.weather || "Any",
+        description: activity.description || "No description available",
       }));
-  
-      console.log('Transformed activities:', transformedActivities);
-      setActivities(transformedActivities);
+      
+      console.log('Transformed activities:', mappedActivities);
+      setActivities(mappedActivities);
       setHasGenerated(true);
     } catch (error) {
       console.error("Error generating activities:", error);
-      setErrorMessage("Failed to generate activities. Please try again later.");
-      setUserInterests([]); 
+      setErrorMessage(error.message || "Failed to generate activities. Please try again with different interests.");
+      
+      // Clear activities on error rather than using fallbacks
+      setActivities([]);
+      setHasGenerated(false);
     } finally {
       setIsLoading(false);
     }
@@ -171,6 +239,7 @@ const DiscoverPage = () => {
       );
     }
   }, []);
+  
   return (
     <div className="container mx-auto px-4 sm:px-6 py-6">
       <div className="max-w-2xl mx-auto"> 
@@ -192,6 +261,9 @@ const DiscoverPage = () => {
             {console.log('Rendering welcome message with user:', user)}
             <p className="text-purple-600">
               Welcome back, <strong>{user.name || user.username}</strong>! 
+              {user.interests && user.interests.length > 0 && (
+                <span> We've loaded your saved interests.</span>
+              )}
             </p>
           </div>
         )}
