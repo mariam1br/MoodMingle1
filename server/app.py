@@ -30,7 +30,7 @@ def make_session_permanent():
 CORS(
     app, 
     supports_credentials=True, 
-    origins=["https://moodmingle-1w1q.onrender.com"],  # Using * for development - change to specific origins in production
+    origins=["https://moodmingle-1w1q.onrender.com"], 
     allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
     expose_headers=["Content-Type", "Authorization"],
     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -635,7 +635,7 @@ def execute_sql():
 @app.route('/get-recommendations', methods=['OPTIONS'])
 def handle_options_recommendations():
     response = app.make_default_options_response()
-    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Origin', 'https://moodmingle-1w1q.onrender.com')
     response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
     response.headers.add('Access-Control-Allow-Credentials', 'true')
