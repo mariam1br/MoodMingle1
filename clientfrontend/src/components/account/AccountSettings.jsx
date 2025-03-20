@@ -17,7 +17,7 @@ const AccountSettings = () => {
     type: '' 
   });
   
-  const [isLoading, setIsLoading] = useState(false);
+  const [setIsLoading] = useState(false);
 
   // Set form data when user changes
   useEffect(() => {
@@ -180,16 +180,6 @@ const AccountSettings = () => {
               Username cannot be changed
             </p>
           </div>
-          
-          <button 
-            type="submit"
-            disabled={isLoading}
-            className={`w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors ${
-              isLoading ? 'opacity-70 cursor-not-allowed' : ''
-            }`}
-          >
-            {isLoading ? 'Saving...' : 'Save Changes'}
-          </button>
         </form>
       </div>
     </section>

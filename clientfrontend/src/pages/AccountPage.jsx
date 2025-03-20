@@ -213,27 +213,6 @@ const AccountPage = () => {
           )}
         </div>
       </div>
-      <div className="bg-white p-4 rounded-lg shadow-sm">
-        <h3 className="font-medium mb-2">Activity Stats</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center">
-            <p className="text-xl font-bold text-purple-600">{savedActivities.length}</p>
-            <p className="text-sm text-gray-500">Saved Activities</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xl font-bold text-purple-600">0</p>
-            <p className="text-sm text-gray-500">Completed</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xl font-bold text-purple-600">0</p>
-            <p className="text-sm text-gray-500">Reviews</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xl font-bold text-purple-600">0</p>
-            <p className="text-sm text-gray-500">Friends</p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 
