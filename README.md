@@ -8,7 +8,7 @@ MoodMingle provides personalized activity recommendations based on your interest
 ## Features
 
 - **Accounts:** Create an account, login, or use as a guest
-- **Discover:** Add interests by typing in the search bar and pressing Enter
+- **Discover:** Add personalized interests by typing in the search bar and pressing Enter, or from the suggestions below.
 - **Recommendations:** Get personalized activity suggestions with a single click
 - **Profile:** View and manage your profile info, saved activities, and interests
 - **Activities:** Save, remove, or share activities with friends (copies to clipboard)
