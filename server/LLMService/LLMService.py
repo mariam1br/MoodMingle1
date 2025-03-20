@@ -18,41 +18,116 @@ genai.configure(api_key=GEMINI_API_KEY)
 
 # Function to generate a structured prompt for Gemini
 def create_prompt(interests, location, weather, temperature):
+    print("CREATE PROMPT CALLED WITH:")
+    print(f"Interests: {interests}")
+    print(f"Location: {location}")
+    print(f"Weather: {weather}")
+    print(f"Temperature: {temperature}")
+
     return (
-        f"Suggest engaging activities for someone who enjoys {', '.join(interests)}. "
-        f"They are located in {location} and the current weather is {weather}, and temperature is {temperature} Degrees Celsius. "
-        f"Include a mix of indoor and outdoor options, and highlight any local events. For the local events make sure to provide dates. "
-        f"Respond strictly in JSON format with the following structure:\n\n"
+        f"You are an activity recommendation AI. Suggest engaging activities for someone who enjoys {', '.join(interests)}. "
+        f"They are located in {location} and the current weather is {weather}, with a temperature of {temperature} Degrees Celsius. "
+        f"Provide a comprehensive list of activities suitable for the conditions. "
+        f"Respond ONLY with a valid JSON in this exact structure:\n\n"
         f"{{\n"
-        f'  "outdoor_activities": [\n    {{"name": "Activity Name", "genre": One word Genre", "location": "Relative Location (Downtown, Stanley Park, At Home, etc.)", "weather": "Weather this activity should be done in (Sunny, Rainy, Any, etc.)", "description": "Brief Description"}}\n  ],\n'
-        f'  "indoor_activities": [\n    {{"name": "Activity Name", "genre": One word Genre", "location": "Relative Location (Downtown, Stanley Park, At Home, etc.)", "weather": "Weather this activity should be done in (Sunny, Rainy, Any, etc.)", "description": "Brief Description"}}\n  ],\n'
-        f'  "local_events": [\n    {{"name": "Activity Name", "genre": One word Genre", "location": "Relative Location (Downtown, Stanley Park, At Home, etc.)", "weather": "Weather this activity should be done in (Sunny, Rainy, Any, etc.)", "description": "Brief Description"}}\n  ],\n'
-        f'  "considerations": [\n    "Important tips or things to keep in mind"\n  ]\n'
-        f"}}\n\n"
-        f"Ensure the JSON response is properly formatted and contains only the requested data without any additional text."
+        f'  "outdoor_activities": [\n    {{\n      "name": "Outdoor Activity Name",\n      "genre": "Outdoor Activity Genre",\n      "location": "Specific Location in {location}",\n      "weather": "Suitable Weather Condition",\n      "description": "Detailed Activity Description"\n    }}\n  ],\n'
+        f'  "indoor_activities": [\n    {{\n      "name": "Indoor Activity Name",\n      "genre": "Indoor Activity Genre",\n      "location": "Specific Location in {location}",\n      "weather": "Suitable Weather Condition",\n      "description": "Detailed Activity Description"\n    }}\n  ],\n'
+        f'  "local_events": [\n    {{\n      "name": "Local Event Name",\n      "genre": "Event Genre",\n      "location": "Specific Location in {location}",\n      "weather": "Suitable Weather Condition",\n      "description": "Detailed Event Description"\n    }}\n  ],\n'
+        f'  "considerations": [\n    "Important tips or recommendations for the user"\n  ]\n'
+        f"}}"
     )
 
 # Function to query Gemini AI
 def query_gemini(prompt):
     try:
-        # Create the model
+        print("QUERYING GEMINI WITH PROMPT:")
+        print(prompt)
+
+        # Configure the model with specific settings
         model = genai.GenerativeModel('gemini-1.5-pro')
         
-        # Generate content
-        response = model.generate_content(prompt)
+        # Set generation configuration
+        generation_config = {
+            "temperature": 0.7,
+            "max_output_tokens": 2048
+        }
 
-        # Get the text response
-        raw_text = response.text
-        print(f'RAW RESPONSE: {raw_text}')
+        # Set safety settings to minimize blocking
+        safety_settings = [
+            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
+        ]
 
-        # Strip triple backticks and "json" label if present
-        clean_json_text = re.sub(r"```json\n|\n```", "", raw_text)
+        # Generate content with configurations
+        response = model.generate_content(
+            prompt, 
+            generation_config=generation_config,
+            safety_settings=safety_settings
+        )
 
-        # Parse the cleaned JSON
-        return json.loads(clean_json_text)
+        # Print raw response
+        print("RAW GEMINI RESPONSE:")
+        print(response.text)
 
-    except json.JSONDecodeError as e:
-        return {"error": f"Failed to parse Gemini response as JSON: {str(e)}"}
-    
+        # Extract JSON using multiple strategies
+        raw_text = response.text.strip()
+
+        # Try to extract JSON using different methods
+        json_extraction_patterns = [
+            r'```json\n(.*?)```',  # JSON in triple backticks
+            r'```\n(.*?)```',      # Alternative backtick pattern
+            r'({.*})',              # JSON within braces
+        ]
+
+        for pattern in json_extraction_patterns:
+            match = re.search(pattern, raw_text, re.DOTALL | re.MULTILINE)
+            if match:
+                clean_json_text = match.group(1).strip()
+                print("EXTRACTED JSON:")
+                print(clean_json_text)
+
+                try:
+                    # Attempt to parse the JSON
+                    recommendations = json.loads(clean_json_text)
+                    
+                    # Validate the structure
+                    if not all(key in recommendations for key in 
+                               ["outdoor_activities", "indoor_activities", "local_events", "considerations"]):
+                        print("INVALID JSON STRUCTURE")
+                        return {
+                            "outdoor_activities": [],
+                            "indoor_activities": [],
+                            "local_events": [],
+                            "considerations": ["Could not generate valid recommendations"]
+                        }
+
+                    print("PARSED RECOMMENDATIONS:")
+                    print(json.dumps(recommendations, indent=2))
+                    return recommendations
+
+                except json.JSONDecodeError as e:
+                    print(f"JSON PARSE ERROR: {e}")
+                    continue
+
+        # If no valid JSON found
+        print("NO VALID JSON EXTRACTED")
+        return {
+            "outdoor_activities": [],
+            "indoor_activities": [],
+            "local_events": [],
+            "considerations": ["Could not generate recommendations"]
+        }
+
     except Exception as e:
-        return {"error": f"Error querying Gemini: {str(e)}"}
+        print(f"COMPREHENSIVE GEMINI QUERY ERROR: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        return {
+            "outdoor_activities": [],
+            "indoor_activities": [],
+            "local_events": [],
+            "considerations": [f"Comprehensive error in recommendation generation: {str(e)}"]
+        }
