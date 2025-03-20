@@ -422,41 +422,49 @@ def get_recommendations():
         if not interests:
             return jsonify({"error": "Interests are required."}), 400
 
-        # Generate prompt and query LLM
-        prompt = create_prompt(interests, location, weather, temperature)
-        recommendations = query_gemini(prompt)
-        
-        # Log the recommendations for debugging
-        print(f"Recommendations received: {recommendations}")
-        
-        # Check if we got the expected response structure
-        if "error" in recommendations:
-            print(f"Error from Gemini: {recommendations['error']}")
-            return jsonify({"error": recommendations['error']}), 500
+        try:
+            # Generate prompt and query LLM
+            prompt = create_prompt(interests, location, weather, temperature)
+            recommendations = query_gemini(prompt)
             
-        # Validate response structure
-        if not isinstance(recommendations, dict) or "outdoor_activities" not in recommendations:
-            print(f"Unexpected response structure: {recommendations}")
+            # Return empty results if there's an error
+            if isinstance(recommendations, dict) and "error" in recommendations:
+                print(f"Error from Gemini: {recommendations['error']}")
+                return jsonify({
+                    "recommendations": {
+                        "outdoor_activities": [],
+                        "indoor_activities": [],
+                        "local_events": [],
+                        "considerations": ["Could not generate recommendations at this time."]
+                    }
+                })
+                
+            return jsonify({"recommendations": recommendations})
+        except Exception as e:
+            print(f"Error calling Gemini: {str(e)}")
+            # Return empty but valid data structure on error
             return jsonify({
                 "recommendations": {
                     "outdoor_activities": [],
                     "indoor_activities": [],
-                    "local_events": []
+                    "local_events": [],
+                    "considerations": ["Could not generate recommendations at this time."]
                 }
             })
-
-        return jsonify({"recommendations": recommendations})
     except Exception as e:
         print(f"Error in get_recommendations: {str(e)}")
+        import traceback
         traceback.print_exc()
+        # Return empty but valid data structure on error
         return jsonify({
-            "error": f"An error occurred: {str(e)}",
             "recommendations": {
                 "outdoor_activities": [],
                 "indoor_activities": [],
-                "local_events": []
+                "local_events": [],
+                "considerations": ["Could not generate recommendations at this time."]
             }
-        }), 500
+        })
+    
 # Database query to get Saved Activities for a user
 @app.route("/saved-activities", methods=["GET"])
 def get_saved_activities():
