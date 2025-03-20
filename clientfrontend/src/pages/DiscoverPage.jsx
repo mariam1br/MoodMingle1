@@ -5,7 +5,7 @@ import ActivityCard from '../components/activities/ActivityCard';
 import { useAuth } from '../context/AuthContext';
 import axios from "axios";
   
-const API_BASE_URL = "http://localhost:5001"; 
+const API_BASE_URL = "https://moodmingle-backend.onrender.com"; 
 
 const DiscoverPage = () => {
   const { user } = useAuth();
