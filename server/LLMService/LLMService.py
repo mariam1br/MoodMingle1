@@ -9,7 +9,7 @@ import google.generativeai as genai
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, origins=["https://moodmingle.onrender.com"])
+CORS(app, origins=["https://moodmingle-2mfi.onrender.com"])
 
 GEMINI_API_KEY = os.getenv("LLM_API_KEY")
 
