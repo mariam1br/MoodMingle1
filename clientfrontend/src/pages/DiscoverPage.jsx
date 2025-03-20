@@ -34,6 +34,11 @@ const DiscoverPage = () => {
     const uniqueInterests = [...new Set(selectedInterests)];
     console.log('Generating activities with interests:', uniqueInterests);
     
+    if (uniqueInterests.length === 0) {
+      setErrorMessage("Please select at least one interest");
+      return;
+    }
+    
     setGeneratedInterests(uniqueInterests);
     setUserInterests(uniqueInterests);
     setHasGenerated(false);
@@ -50,7 +55,7 @@ const DiscoverPage = () => {
   
         if (!response.data.success) {
           console.error("Failed to save interests:", response.data.error);
-          setUserInterests([]); 
+          // Don't clear user interests on error - just log it
         }
       }
   
@@ -69,9 +74,9 @@ const DiscoverPage = () => {
         },
         body: JSON.stringify({
           interests: uniqueInterests,
-          location: location,
-          weather: weather?.condition,
-          temperature: weather?.temperature,
+          location: location || "Unknown",
+          weather: weather?.condition || "Any",
+          temperature: weather?.temperature || 20,
         }),
       });
   
@@ -106,6 +111,35 @@ const DiscoverPage = () => {
         transformedActivities.push(...data.recommendations.local_events);
       }
       
+      // Handle empty recommendations - provide some defaults
+      if (transformedActivities.length === 0) {
+        console.log('No activities received, adding default activities');
+        // Add some default activities based on interests
+        transformedActivities.push(
+          {
+            name: "Local Park Exploration",
+            genre: "Outdoor",
+            location: location || "Nearby",
+            weather: "Any",
+            description: "Take a walk in a local park or green space and enjoy nature."
+          },
+          {
+            name: "Coffee Shop Visit",
+            genre: "Social",
+            location: "Downtown",
+            weather: "Any",
+            description: "Visit a local coffee shop and enjoy a warm drink."
+          },
+          {
+            name: "Community Library",
+            genre: "Educational",
+            location: "Community Center",
+            weather: "Any",
+            description: "Visit your local library to find books on your interests."
+          }
+        );
+      }
+      
       // Map the combined activities with fallback values
       const mappedActivities = transformedActivities.map((activity) => ({
         title: activity.name || "Unknown Activity",
@@ -121,7 +155,32 @@ const DiscoverPage = () => {
     } catch (error) {
       console.error("Error generating activities:", error);
       setErrorMessage("Failed to generate activities. Please try again later.");
-      setUserInterests([]); 
+      
+      // Provide fallback activities even when there's an error
+      setActivities([
+        {
+          title: "Reading Session",
+          category: "Relaxation",
+          location: "Home",
+          weather: "Any",
+          description: "Spend some time reading a good book related to your interests."
+        },
+        {
+          title: "Online Community",
+          category: "Social",
+          location: "Virtual",
+          weather: "Any",
+          description: "Find an online community or forum focused on your interests and engage with like-minded people."
+        },
+        {
+          title: "Local Park Visit",
+          category: "Outdoor",
+          location: "Nearby",
+          weather: "Any",
+          description: "Take a walk in a nearby park to clear your mind and enjoy nature."
+        }
+      ]);
+      setHasGenerated(true);
     } finally {
       setIsLoading(false);
     }
@@ -192,6 +251,7 @@ const DiscoverPage = () => {
       );
     }
   }, []);
+  
   return (
     <div className="container mx-auto px-4 sm:px-6 py-6">
       <div className="max-w-2xl mx-auto"> 

@@ -1,4 +1,3 @@
-// src/context/SavedActivitiesContext.jsx
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import axios from "axios";
 import { useAuth } from './AuthContext';
@@ -10,28 +9,37 @@ const API_BASE_URL = "https://moodmingle-backend.onrender.com";
 export const SavedActivitiesProvider = ({ children }) => {
   const [savedActivities, setSavedActivities] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const { user } = useAuth();
+  const { user, isLoggedIn } = useAuth();
   
   // Load saved activities when user changes
   useEffect(() => {
     const fetchSavedActivities = async () => {
       try {
         if (!user || user.isGuest) {
+          console.log('No user or guest user - clearing saved activities');
           setSavedActivities([]);
           return;
         }
+        
         setIsLoading(true);
+        console.log('Fetching saved activities for user:', user.username);
+        
         const response = await axios.get(`${API_BASE_URL}/saved-activities`, {
           withCredentials: true, // Important for session cookies
         });
-        console.log("4...");
 
         console.log("Saved activities response:", response.data);
 
         if (response.data.success) {
-          setSavedActivities(response.data.activities);
+          if (Array.isArray(response.data.activities)) {
+            setSavedActivities(response.data.activities);
+          } else {
+            console.error("Activities is not an array:", response.data.activities);
+            setSavedActivities([]);
+          }
         } else {
           console.error("Failed to fetch saved activities:", response.data.error);
+          setSavedActivities([]);
         }
       } catch (error) {
         console.error("Error fetching saved activities:", error);
@@ -41,16 +49,28 @@ export const SavedActivitiesProvider = ({ children }) => {
       }
     };
 
-    fetchSavedActivities();
-  }, [user]);
-
-
-  // Save activities to localStorage whenever they change
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem(`savedActivities_${user.id}`, JSON.stringify(savedActivities));
+    // Only fetch if the user is logged in
+    if (isLoggedIn && user) {
+      fetchSavedActivities();
+    } else {
+      // Try to load from localStorage for guest users
+      try {
+        const storedActivities = localStorage.getItem('guestSavedActivities');
+        if (storedActivities) {
+          setSavedActivities(JSON.parse(storedActivities));
+        }
+      } catch (err) {
+        console.error("Error loading saved activities from localStorage:", err);
+      }
     }
-  }, [savedActivities, user]);
+  }, [user, isLoggedIn]);
+
+  // Save activities to localStorage for guest users
+  useEffect(() => {
+    if (!isLoggedIn) {
+      localStorage.setItem('guestSavedActivities', JSON.stringify(savedActivities));
+    }
+  }, [savedActivities, isLoggedIn]);
 
   const saveActivity = (activity) => {
     setSavedActivities(prev => {
@@ -75,9 +95,7 @@ export const SavedActivitiesProvider = ({ children }) => {
 
   const clearAllActivities = () => {
     setSavedActivities([]);
-    if (user) {
-      localStorage.removeItem(`savedActivities_${user.id}`);
-    }
+    localStorage.removeItem('guestSavedActivities');
   };
 
   return (

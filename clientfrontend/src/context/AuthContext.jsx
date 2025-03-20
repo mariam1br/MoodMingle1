@@ -1,4 +1,3 @@
-// src/context/AuthContext.jsx
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import axios from 'axios';
 
@@ -59,10 +58,16 @@ export const AuthProvider = ({ children }) => {
       console.log('Fetched interests response:', response.data);
       
       if (response.data.success) {
-        setUser((prevUser) => ({
-          ...prevUser,
-          interests: response.data.interests
-        }));
+        // Update user state with interests
+        setUser(prevUser => {
+          const updatedUser = {
+            ...prevUser,
+            interests: response.data.interests
+          };
+          console.log('Updated user with interests:', updatedUser);
+          return updatedUser;
+        });
+        
         return { success: true, interests: response.data.interests };
       } else {
         console.error('Failed to fetch interests:', response.data.error);
@@ -91,13 +96,19 @@ export const AuthProvider = ({ children }) => {
       console.log('Login response:', response.data);
 
       if (response.data.success) {
-        setUser(response.data.user);
+        // Create a user object with interests property (even if empty initially)
+        const userWithInterests = {
+          ...response.data.user,
+          interests: []
+        };
+        
+        setUser(userWithInterests);
         setIsLoggedIn(true);
         
         // Fetch interests immediately after successful login
         fetchUserInterests();
         
-        return { success: true, user: response.data.user };
+        return { success: true, user: userWithInterests };
       } else {
         return { success: false, error: response.data.error || "Login failed" };
       }
@@ -127,14 +138,20 @@ export const AuthProvider = ({ children }) => {
       console.log('Signup response:', response.data);
       
       if (response.data.success) {
+        // Create a user object with interests property (even if empty initially)
+        const userWithInterests = {
+          ...response.data.user,
+          interests: []
+        };
+        
         // Auto-login after successful signup
-        setUser(response.data.user);
+        setUser(userWithInterests);
         setIsLoggedIn(true);
         
         // Fetch interests immediately after successful signup
         fetchUserInterests();
         
-        return { success: true, user: response.data.user };
+        return { success: true, user: userWithInterests };
       } else {
         return { success: false, error: response.data.error || "Signup failed" };
       }
