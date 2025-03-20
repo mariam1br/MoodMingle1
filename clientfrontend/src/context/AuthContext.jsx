@@ -4,7 +4,7 @@ import axios from 'axios';
 
 const AuthContext = createContext(null);
 
-const API_BASE_URL = 'https://moodmingle-backend.onrender.com';
+const API_BASE_URL = 'https://moodmingle-1w1q.onrender.com/';
 
 export const AuthProvider = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);

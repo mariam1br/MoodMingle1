@@ -5,7 +5,7 @@ import { useAuth } from './AuthContext';
 
 const SavedActivitiesContext = createContext(null);
 
-const API_BASE_URL = "https://moodmingle-backend.onrender.com";
+const API_BASE_URL = "https://moodmingle-1w1q.onrender.com/";
 
 export const SavedActivitiesProvider = ({ children }) => {
   const [savedActivities, setSavedActivities] = useState([]);
