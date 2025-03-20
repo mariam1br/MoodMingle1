@@ -425,7 +425,19 @@ def get_recommendations():
         try:
             # Generate prompt and query LLM
             prompt = create_prompt(interests, location, weather, temperature)
+            print(f"Sending prompt to Gemini: {prompt[:300]}...") # Log beginning of prompt
+            
             recommendations = query_gemini(prompt)
+            print(f"Received recommendations structure with keys: {list(recommendations.keys())}")
+            
+            # Check the activity counts in the response
+            activity_counts = {
+                "outdoor_activities": len(recommendations.get("outdoor_activities", [])),
+                "indoor_activities": len(recommendations.get("indoor_activities", [])),
+                "local_events": len(recommendations.get("local_events", [])),
+                "considerations": len(recommendations.get("considerations", []))
+            }
+            print(f"Activity counts in response: {activity_counts}")
             
             # Return empty results if there's an error
             if isinstance(recommendations, dict) and "error" in recommendations:
@@ -439,9 +451,13 @@ def get_recommendations():
                     }
                 })
                 
+            # Return the LLM recommendations
             return jsonify({"recommendations": recommendations})
+            
         except Exception as e:
             print(f"Error calling Gemini: {str(e)}")
+            import traceback
+            traceback.print_exc()
             # Return empty but valid data structure on error
             return jsonify({
                 "recommendations": {
