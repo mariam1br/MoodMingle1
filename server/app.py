@@ -20,11 +20,16 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Important for cross-site reque
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)  # Session lasts 7 days
 
 # Updated CORS configuration
-CORS(app, 
-    supports_credentials=True, 
-    origins=["https://moodmingle-1w1q.onrender.com"],
-    allow_headers=["Content-Type", "Authorization"],
-    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+CORS(
+    app,
+    supports_credentials=True,
+    # Allow all origins in development - restrict this in production
+    origins=["*"],  # This allows all origins - change back to specific origins in production
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
+    expose_headers=["Content-Type", "Authorization"],
+    max_age=86400  # 24 hours
+)
 
 @app.before_request
 def make_session_permanent():
