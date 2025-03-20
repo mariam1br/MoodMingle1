@@ -173,7 +173,7 @@ class DatabaseQueries:
     # Retrieve all activities for a user
     def get_activities(self, username):
         query = """
-        SELECT Activities.name, Activities.name, Activities.genre, Activities.location, Activities.weather, Activities.description
+        SELECT Activities.name, Activities.genre, Activities.location, Activities.weather, Activities.description
         FROM Activities 
         JOIN Users ON Activities.userID = Users.userID 
         WHERE Users.username = %s
