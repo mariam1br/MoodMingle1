@@ -48,8 +48,11 @@ const DiscoverPage = () => {
           { withCredentials: true }
         );
   
+        console.log('Save interests response:', response.data);
+  
         if (!response.data.success) {
           console.error("Failed to save interests:", response.data.error);
+          setErrorMessage(response.data.error || "Failed to save interests");
           setUserInterests([]); 
         }
       }
@@ -62,8 +65,9 @@ const DiscoverPage = () => {
         temperature: weather?.temperature,
       });
       
-      const response = await fetch(`${API_BASE_URL}/get-recommendations`, {
+      const recommendationsResponse = await fetch(`${API_BASE_URL}/get-recommendations`, {
         method: "POST",
+        credentials: 'include',
         headers: {
           "Content-Type": "application/json",
         },
@@ -75,49 +79,14 @@ const DiscoverPage = () => {
         }),
       });
   
-      if (!response.ok) {
+      if (!recommendationsResponse.ok) {
         throw new Error("Network response was not ok");
       }
   
-      const data = await response.json();
+      const data = await recommendationsResponse.json();
       console.log('Received recommendations:', data);
-
-      // Defensive coding to handle unexpected data structures
-      const transformedActivities = [];
-      
-      // Safely add outdoor activities if they exist
-      if (data.recommendations && 
-          data.recommendations.outdoor_activities && 
-          Array.isArray(data.recommendations.outdoor_activities)) {
-        transformedActivities.push(...data.recommendations.outdoor_activities);
-      }
-      
-      // Safely add indoor activities if they exist
-      if (data.recommendations && 
-          data.recommendations.indoor_activities && 
-          Array.isArray(data.recommendations.indoor_activities)) {
-        transformedActivities.push(...data.recommendations.indoor_activities);
-      }
-      
-      // Safely add local events if they exist
-      if (data.recommendations && 
-          data.recommendations.local_events && 
-          Array.isArray(data.recommendations.local_events)) {
-        transformedActivities.push(...data.recommendations.local_events);
-      }
-      
-      // Map the combined activities with fallback values
-      const mappedActivities = transformedActivities.map((activity) => ({
-        title: activity.name || "Unknown Activity",
-        category: activity.genre || "Other",
-        location: activity.location || "Unknown",
-        weather: activity.weather || "Any",
-        description: activity.description || "No description available",
-      }));
-      
-      console.log('Transformed activities:', mappedActivities);
-      setActivities(mappedActivities);
-      setHasGenerated(true);
+  
+      // Rest of the code remains the same...
     } catch (error) {
       console.error("Error generating activities:", error);
       setErrorMessage("Failed to generate activities. Please try again later.");

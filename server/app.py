@@ -417,51 +417,73 @@ def get_recommendations():
         location = data.get("location", "Unknown")
         weather = data.get("weather", "Unknown")
         temperature = data.get("temperature", "Unknown")
+        
         print(f"Generating recommendations for: Location: {location}, Weather: {weather}, Temperature: {temperature}, Interests: {interests}")
 
         if not interests:
+            print("No interests provided for recommendations")
             return jsonify({"error": "Interests are required."}), 400
 
         try:
             # Generate prompt and query LLM
             prompt = create_prompt(interests, location, weather, temperature)
+            print(f"Generated prompt: {prompt}")
+            
             recommendations = query_gemini(prompt)
             
-            # Return empty results if there's an error
-            if isinstance(recommendations, dict) and "error" in recommendations:
-                print(f"Error from Gemini: {recommendations['error']}")
+            # Enhanced logging for recommendations
+            print("Recommendations received:")
+            print(json.dumps(recommendations, indent=2))
+            
+            # Validate the structure of recommendations
+            if not isinstance(recommendations, dict):
+                print("Recommendations is not a dictionary")
                 return jsonify({
                     "recommendations": {
                         "outdoor_activities": [],
                         "indoor_activities": [],
                         "local_events": [],
-                        "considerations": ["Could not generate recommendations at this time."]
+                        "considerations": ["Invalid recommendation format"]
+                    }
+                })
+
+            # Check if the dictionary has the expected keys
+            if not all(key in recommendations for key in ["outdoor_activities", "indoor_activities", "local_events"]):
+                print("Missing keys in recommendations")
+                return jsonify({
+                    "recommendations": {
+                        "outdoor_activities": [],
+                        "indoor_activities": [],
+                        "local_events": [],
+                        "considerations": ["Incomplete recommendation data"]
                     }
                 })
                 
             return jsonify({"recommendations": recommendations})
         except Exception as e:
             print(f"Error calling Gemini: {str(e)}")
-            # Return empty but valid data structure on error
+            import traceback
+            traceback.print_exc()
+            
             return jsonify({
                 "recommendations": {
                     "outdoor_activities": [],
                     "indoor_activities": [],
                     "local_events": [],
-                    "considerations": ["Could not generate recommendations at this time."]
+                    "considerations": [f"Could not generate recommendations: {str(e)}"]
                 }
             })
     except Exception as e:
         print(f"Error in get_recommendations: {str(e)}")
         import traceback
         traceback.print_exc()
-        # Return empty but valid data structure on error
+        
         return jsonify({
             "recommendations": {
                 "outdoor_activities": [],
                 "indoor_activities": [],
                 "local_events": [],
-                "considerations": ["Could not generate recommendations at this time."]
+                "considerations": [f"Could not generate recommendations: {str(e)}"]
             }
         })
     
@@ -575,6 +597,8 @@ def save_interests():
     data = request.json
     interests = data.get("interests", [])
 
+    print(f"Attempting to save interests for user {username}: {interests}")
+
     if not interests:
         return jsonify({"success": False, "error": "No interests provided"}), 400
 
@@ -583,15 +607,22 @@ def save_interests():
         datab.connect()
         db_queries = dq(datab.connection)
 
-        existing_interests = set(db_queries.get_preferences(username) or [])
+        # Print existing interests before saving
+        existing_interests = db_queries.get_preferences(username) or []
+        print(f"Existing interests for {username}: {existing_interests}")
+
+        existing_interests_set = set(existing_interests)
         new_interests_set = set(interests)
 
-        interests_to_add = list(new_interests_set - existing_interests)
+        interests_to_add = list(new_interests_set - existing_interests_set)
+        print(f"Interests to add: {interests_to_add}")
 
         if interests_to_add:
             success = db_queries.save_preferences(username, interests_to_add)
+            print(f"Save preferences success: {success}")
         else:
             success = True
+            print("No new interests to add")
 
         DatabaseConnection.disconnect(datab)
 
@@ -601,6 +632,7 @@ def save_interests():
             return jsonify({"success": False, "error": "Failed to save interests"})
 
     except Exception as e:
+        print(f"Error saving interests: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 # Get interests for a user
