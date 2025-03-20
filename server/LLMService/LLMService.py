@@ -94,11 +94,17 @@ def query_gemini(prompt):
     }
     
     try:
-        # Create the model
-        model = genai.GenerativeModel('gemini-1.5-pro')
+        # Use the right method based on the API version
+        # This is compatible with the older google.generativeai version
+        model = "gemini-pro"  # Using the correct model name
         
-        # Generate content
-        response = model.generate_content(prompt)
+        # Generate content with the older API style
+        response = genai.generate_text(
+            model=model,
+            prompt=prompt,
+            temperature=0.7,
+            max_output_tokens=1024
+        )
 
         # Get the text response
         raw_text = response.text
