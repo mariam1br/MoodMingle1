@@ -1,4 +1,3 @@
-// src/context/AuthContext.jsx
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import axios from 'axios';
 
@@ -11,65 +10,101 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check if user is already logged in when the app loads
+  // Comprehensive user authentication check
   useEffect(() => {
-    const fetchUser = async () => {
+    const checkAuthStatus = async () => {
       try {
-        setIsLoading(true);
+        console.log("CHECKING AUTHENTICATION STATUS");
+        
+        // Enhanced request with more comprehensive error handling
         const response = await axios.get(`${API_BASE_URL}/current-user`, {
-          withCredentials: true, // Important for session cookies
+          withCredentials: true,
+          timeout: 10000, // 10-second timeout
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
         });
 
-        console.log('Current user response:', response.data);
+        console.log("Current user response:", response.data);
 
         const fetchedUser = response.data.user;
 
-        if (fetchedUser && !fetchedUser.isGuest) {
-          // If there is a logged-in user, set the user and mark them as logged in
+        // More stringent user validation
+        const isValidUser = fetchedUser && 
+                             !fetchedUser.isGuest && 
+                             fetchedUser.username !== 'Guest' && 
+                             fetchedUser.username;
+
+        if (isValidUser) {
+          console.log("AUTHENTICATED USER DETECTED:", fetchedUser.username);
           setUser(fetchedUser);
           setIsLoggedIn(true);
           
-          // Fetch user interests immediately after login confirmation
-          fetchUserInterests();
+          // Fetch user interests after authentication
+          await fetchUserInterests();
         } else {
-          // If the user is a guest or none exists, ensure logged out state
+          console.log("NO VALID USER - SETTING LOGGED OUT STATE");
           setUser(null);
           setIsLoggedIn(false);
         }
       } catch (error) {
-        console.error('Error fetching user session', error);
+        console.error("AUTHENTICATION CHECK FAILED:", error);
+        
+        // Detailed error logging
+        if (error.response) {
+          console.error("Response Error:", error.response.data);
+          console.error("Status Code:", error.response.status);
+        } else if (error.request) {
+          console.error("No Response Received:", error.request);
+        } else {
+          console.error("Error Setting Up Request:", error.message);
+        }
+
         setUser(null);
         setIsLoggedIn(false);
       } finally {
+        // Always set loading to false, ensuring UI can render
         setIsLoading(false);
       }
     };
 
-    fetchUser();
+    // Immediate authentication check
+    checkAuthStatus();
   }, []);
 
   const fetchUserInterests = async () => {
     try {
-      console.log('Fetching interests for user');
+      console.log("Fetching user interests");
       
       const response = await axios.get(`${API_BASE_URL}/get-interests`, {
-        withCredentials: true
+        withCredentials: true,
+        timeout: 10000
       });
       
-      console.log('Fetched interests response:', response.data);
+      console.log("Interests fetch response:", response.data);
       
       if (response.data.success) {
-        setUser((prevUser) => ({
+        // Update user with fetched interests
+        setUser(prevUser => ({
           ...prevUser,
-          interests: response.data.interests
+          interests: response.data.interests || []
         }));
-        return { success: true, interests: response.data.interests };
+
+        return { 
+          success: true, 
+          interests: response.data.interests || [] 
+        };
       } else {
-        console.error('Failed to fetch interests:', response.data.error);
-        return { success: false, error: response.data.error };
+        console.warn("Failed to fetch interests:", response.data.error);
+        return { 
+          success: false, 
+          error: response.data.error || "Could not retrieve interests" 
+        };
       }
     } catch (error) {
-      console.error('Error fetching interests:', error);
+      console.error("Interests Fetch Error:", error);
       return { 
         success: false, 
         error: error.response?.data?.error || "Failed to fetch interests" 
@@ -79,41 +114,56 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     try {
-      console.log('Attempting login with:', credentials);
+      console.log("Attempting login:", credentials.emailOrUsername);
       
       const response = await axios.post(`${API_BASE_URL}/login`, {
-        username: credentials.emailOrUsername, // Send as username to match backend
+        username: credentials.emailOrUsername,
         password: credentials.password
       }, {
-        withCredentials: true, // Important for session cookies
+        withCredentials: true,
+        timeout: 10000
       });
 
-      console.log('Login response:', response.data);
+      console.log("Login response:", response.data);
 
       if (response.data.success) {
-        setUser(response.data.user);
+        const loginUser = response.data.user;
+        
+        setUser(loginUser);
         setIsLoggedIn(true);
         
-        // Fetch interests immediately after successful login
-        fetchUserInterests();
+        // Fetch interests post-login
+        await fetchUserInterests();
         
-        return { success: true, user: response.data.user };
+        return { 
+          success: true, 
+          user: loginUser 
+        };
       } else {
-        return { success: false, error: response.data.error || "Login failed" };
+        console.warn("Login failed:", response.data.error);
+        return { 
+          success: false, 
+          error: response.data.error || "Login unsuccessful" 
+        };
       }
     } catch (error) {
-      console.error('Login failed:', error);
-      console.error('Error response:', error.response?.data);
+      console.error("Login Error:", error);
+      
+      // Detailed error handling
+      const errorMessage = error.response?.data?.error || 
+                           error.message || 
+                           "An unexpected error occurred during login";
+      
       return { 
         success: false, 
-        error: error.response?.data?.error || "An error occurred during login" 
+        error: errorMessage 
       };
     }
   };
 
   const signup = async (userData) => {
     try {
-      console.log('Attempting signup with:', userData);
+      console.log("Attempting signup with:", userData);
       
       const response = await axios.post(`${API_BASE_URL}/signup`, {
         username: userData.username,
@@ -122,28 +172,41 @@ export const AuthProvider = ({ children }) => {
         displayName: userData.displayName
       }, {
         withCredentials: true,
+        timeout: 10000
       });
 
-      console.log('Signup response:', response.data);
+      console.log("Signup response:", response.data);
       
       if (response.data.success) {
-        // Auto-login after successful signup
-        setUser(response.data.user);
+        const signupUser = response.data.user;
+        
+        setUser(signupUser);
         setIsLoggedIn(true);
         
-        // Fetch interests immediately after successful signup
-        fetchUserInterests();
+        // Fetch interests post-signup
+        await fetchUserInterests();
         
-        return { success: true, user: response.data.user };
+        return { 
+          success: true, 
+          user: signupUser 
+        };
       } else {
-        return { success: false, error: response.data.error || "Signup failed" };
+        console.warn("Signup failed:", response.data.error);
+        return { 
+          success: false, 
+          error: response.data.error || "Signup unsuccessful" 
+        };
       }
     } catch (error) {
-      console.error('Signup failed:', error);
-      console.error('Error response:', error.response?.data);
+      console.error("Signup Error:", error);
+      
+      const errorMessage = error.response?.data?.error || 
+                           error.message || 
+                           "An unexpected error occurred during signup";
+      
       return { 
         success: false, 
-        error: error.response?.data?.error || "An error occurred during signup" 
+        error: errorMessage 
       };
     }
   };
@@ -151,7 +214,8 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       const response = await axios.post(`${API_BASE_URL}/logout`, {}, { 
-        withCredentials: true 
+        withCredentials: true,
+        timeout: 10000
       });
       
       console.log('Logout response:', response.data);
@@ -165,7 +229,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Updated to use the fetching function
   const updateUserInterests = async () => {
     if (isLoggedIn) {
       return await fetchUserInterests();
@@ -183,7 +246,8 @@ export const AuthProvider = ({ children }) => {
           username: user.username,
           ...profileData
         }, {
-          withCredentials: true
+          withCredentials: true,
+          timeout: 10000
         });
         
         console.log('Update profile response:', response.data);
@@ -207,14 +271,18 @@ export const AuthProvider = ({ children }) => {
     return { success: false, error: "User not logged in" };
   };
   
-  // Testing function to execute SQL (used fo development mode purposes)
   const executeSql = async (query) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/execute-sql`, { query });
+      const response = await axios.post(`${API_BASE_URL}/execute-sql`, { query }, {
+        timeout: 10000
+      });
       return response.data;
     } catch (error) {
       console.error('Error executing SQL:', error);
-      return { success: false, error: error.response?.data?.error || "SQL execution failed" };
+      return { 
+        success: false, 
+        error: error.response?.data?.error || "SQL execution failed" 
+      };
     }
   };
 
@@ -229,7 +297,8 @@ export const AuthProvider = ({ children }) => {
         updateUserInterests,
         updateUserProfile,
         isLoading,
-        executeSql
+        executeSql,
+        fetchUserInterests
       }}
     >
       {children}
@@ -237,4 +306,12 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  
+  if (context === null) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  
+  return context;
+};
