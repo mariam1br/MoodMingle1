@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 
 app = Flask(__name__)
 app.secret_key = "kbo7c43w7898jbs"  # Required for session management
-CORS(app, supports_credentials=True, origins=["https://moodmingle-2mfi.onrender.com"])
+CORS(app, supports_credentials=True, origins=["https://moodmingle-1w1q.onrender.com"])
 
 
 # Database connection configuration
