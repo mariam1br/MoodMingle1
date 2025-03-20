@@ -32,6 +32,7 @@ const DiscoverPage = () => {
   const handleGenerateActivities = async (selectedInterests) => {
     setErrorMessage("");
     const uniqueInterests = [...new Set(selectedInterests)];
+    console.log('Generating activities with interests:', uniqueInterests);
     
     setGeneratedInterests(uniqueInterests);
     setUserInterests(uniqueInterests);
@@ -39,17 +40,30 @@ const DiscoverPage = () => {
     setIsLoading(true);
   
     try {
+      if (user) {
+        console.log('Saving interests to database for user:', user.username);
+        const response = await axios.post(
+          `${API_BASE_URL}/save-interests`,
+          { interests: uniqueInterests },
+          { withCredentials: true }
+        );
+  
+        if (!response.data.success) {
+          console.error("Failed to save interests:", response.data.error);
+          setUserInterests([]); 
+        }
+      }
+  
       // Fetch activity recommendations
-      console.log('Fetching recommendations with:', { 
+      console.log('Fetching activity recommendations with:', { 
         interests: uniqueInterests, 
         location, 
         weather: weather?.condition,
         temperature: weather?.temperature,
       });
       
-      const recommendationsResponse = await fetch(`${API_BASE_URL}/get-recommendations`, {
+      const response = await fetch(`${API_BASE_URL}/get-recommendations`, {
         method: "POST",
-        credentials: 'include',
         headers: {
           "Content-Type": "application/json",
         },
@@ -61,70 +75,58 @@ const DiscoverPage = () => {
         }),
       });
   
-      const data = await recommendationsResponse.json();
-      console.log('FULL RECOMMENDATIONS DATA:', JSON.stringify(data, null, 2));
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
   
-      // Detailed logging for recommendations
-      console.log('Outdoor Activities:', data.recommendations.outdoor_activities);
-      console.log('Indoor Activities:', data.recommendations.indoor_activities);
-      console.log('Local Events:', data.recommendations.local_events);
-  
+      const data = await response.json();
+      console.log('Received recommendations:', data);
+
+      // Defensive coding to handle unexpected data structures
       const transformedActivities = [];
       
-      // Explicitly check and log each category
-      if (data.recommendations.outdoor_activities && 
-          Array.isArray(data.recommendations.outdoor_activities) &&
-          data.recommendations.outdoor_activities.length > 0) {
-        console.log('Adding outdoor activities');
+      // Safely add outdoor activities if they exist
+      if (data.recommendations && 
+          data.recommendations.outdoor_activities && 
+          Array.isArray(data.recommendations.outdoor_activities)) {
         transformedActivities.push(...data.recommendations.outdoor_activities);
       }
       
-      if (data.recommendations.indoor_activities && 
-          Array.isArray(data.recommendations.indoor_activities) &&
-          data.recommendations.indoor_activities.length > 0) {
-        console.log('Adding indoor activities');
+      // Safely add indoor activities if they exist
+      if (data.recommendations && 
+          data.recommendations.indoor_activities && 
+          Array.isArray(data.recommendations.indoor_activities)) {
         transformedActivities.push(...data.recommendations.indoor_activities);
       }
       
-      if (data.recommendations.local_events && 
-          Array.isArray(data.recommendations.local_events) &&
-          data.recommendations.local_events.length > 0) {
-        console.log('Adding local events');
+      // Safely add local events if they exist
+      if (data.recommendations && 
+          data.recommendations.local_events && 
+          Array.isArray(data.recommendations.local_events)) {
         transformedActivities.push(...data.recommendations.local_events);
       }
       
-      // Log raw transformation details
-      console.log('Raw transformed activities:', transformedActivities);
+      // Map the combined activities with fallback values
+      const mappedActivities = transformedActivities.map((activity) => ({
+        title: activity.name || "Unknown Activity",
+        category: activity.genre || "Other",
+        location: activity.location || "Unknown",
+        weather: activity.weather || "Any",
+        description: activity.description || "No description available",
+      }));
       
-      const mappedActivities = transformedActivities.map((activity) => {
-        console.log('Mapping individual activity:', activity);
-        return {
-          title: activity.name || "Unknown Activity",
-          category: activity.genre || "Other",
-          location: activity.location || "Unknown",
-          weather: activity.weather || "Any",
-          description: activity.description || "No description available",
-        };
-      });
-      
-      console.log('Mapped Activities:', mappedActivities);
-      
-      // Additional check for empty activities
-      if (mappedActivities.length === 0) {
-        setErrorMessage("No activities found for your interests. Try different interests.");
-      }
-      
+      console.log('Transformed activities:', mappedActivities);
       setActivities(mappedActivities);
       setHasGenerated(true);
-  
     } catch (error) {
-      console.error("Comprehensive error generating activities:", error);
-      setErrorMessage(`Failed to generate activities: ${error.message}`);
+      console.error("Error generating activities:", error);
+      setErrorMessage("Failed to generate activities. Please try again later.");
       setUserInterests([]); 
     } finally {
       setIsLoading(false);
     }
   };
+
   // Update location when the user types in the SearchBar
   const handleLocationChange = (newLocation) => {
     console.log('User updated location:', newLocation);
