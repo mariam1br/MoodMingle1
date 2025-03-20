@@ -182,24 +182,58 @@ export const AuthProvider = ({ children }) => {
       };
     }
   };
+// Add this to your AuthContext.jsx to persist user data across refreshes
+useEffect(() => {
+  if (user) {
+    // Save user data to localStorage on login
+    localStorage.setItem('moodmingle_user', JSON.stringify(user));
+  }
+}, [user]);
 
-  const logout = async () => {
+// Add this near the top of your AuthProvider component
+useEffect(() => {
+  // Try to restore user data from localStorage on page load
+  const savedUser = localStorage.getItem('moodmingle_user');
+  if (savedUser && !user) {
     try {
-      const response = await axios.post(`${API_BASE_URL}/logout`, {}, { 
-        withCredentials: true 
-      });
+      const parsedUser = JSON.parse(savedUser);
+      setUser(parsedUser);
+      setIsLoggedIn(true);
       
-      console.log('Logout response:', response.data);
-      
-      setUser(null);
-      setIsLoggedIn(false);
-      // Reset state or perform a page refresh
-      window.location.href = '/';
-    } catch (error) {
-      console.error('Logout failed:', error);
+      // Verify with server that session is still valid
+      axios.get(`${API_BASE_URL}/current-user`, { withCredentials: true })
+        .then(response => {
+          if (!response.data.user || response.data.user.isGuest) {
+            // Session expired, clear localStorage and state
+            localStorage.removeItem('moodmingle_user');
+            setUser(null);
+            setIsLoggedIn(false);
+          }
+        })
+        .catch(() => {
+          // On error, clear localStorage and state
+          localStorage.removeItem('moodmingle_user');
+          setUser(null);
+          setIsLoggedIn(false);
+        });
+    } catch (e) {
+      localStorage.removeItem('moodmingle_user');
     }
-  };
+  }
+}, []);
 
+// Also modify your logout function to clear localStorage
+const logout = async () => {
+  try {
+    await axios.post(`${API_BASE_URL}/logout`, {}, { withCredentials: true });
+    localStorage.removeItem('moodmingle_user');
+    setUser(null);
+    setIsLoggedIn(false);
+    window.location.href = '/';
+  } catch (error) {
+    console.error('Logout failed:', error);
+  }
+};
   // Function to update user data (like when interests change)
   const updateUser = (userData) => {
     setUser(prevUser => {

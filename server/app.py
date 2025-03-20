@@ -15,16 +15,23 @@ from dotenv import load_dotenv
 app = Flask(__name__)
 app.secret_key = "kbo7c43w7898jbs"  # Required for session management
 
-# Session configuration
-app.config['SESSION_COOKIE_SECURE'] = True  # For HTTPS
+# Session configuration - modified for better compatibility
+app.config['SESSION_COOKIE_SECURE'] = False  # Change to True only if you're using HTTPS
 app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Important for cross-site requests
+app.config['SESSION_COOKIE_SAMESITE'] = None  # None works better than 'None' for some browsers
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)  # Session lasts 7 days
 
 # Make sessions permanent
 @app.before_request
 def make_session_permanent():
     session.permanent = True
+
+# Add CORS headers after every request
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
+    return response
 
 # Updated CORS configuration
 CORS(
@@ -344,6 +351,7 @@ def get_user_details():
 @app.route("/current-user", methods=["GET"])
 def current_user():
     if "user" in session:
+        print("Current user session data:", session["user"])
         return jsonify({"success": True, "user": session["user"]})
     else:
         # If no user is logged in, return a default guest user
@@ -631,21 +639,19 @@ def execute_sql():
             "traceback": traceback.format_exc()
         }), 500
 
-# Special CORS preflight handler for recommendations
-@app.route('/get-recommendations', methods=['OPTIONS'])
-def handle_options_recommendations():
+# Special handler for OPTIONS requests (helps with mobile browsers)
+@app.route('/<path:path>', methods=['OPTIONS'])
+def handle_options(path):
     response = app.make_default_options_response()
     response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
     response.headers.add('Access-Control-Allow-Credentials', 'true')
     return response
 
 # API Endpoint to Get Recommendations
 @app.route("/get-recommendations", methods=["POST"])
 def get_recommendations():
-    # Add CORS headers to this specific endpoint
-    response = None
     try:
         data = request.json
         interests = data.get("interests", [])
@@ -655,8 +661,7 @@ def get_recommendations():
         print(f"Generating recommendations for: Location: {location}, Weather: {weather}, Temperature: {temperature}, Interests: {interests}")
 
         if not interests:
-            response = jsonify({"error": "Interests are required."}), 400
-            return response
+            return jsonify({"error": "Interests are required."}), 400
 
         try:
             # Generate prompt and query LLM
@@ -666,7 +671,7 @@ def get_recommendations():
             # Return empty results if there's an error
             if isinstance(recommendations, dict) and "error" in recommendations:
                 print(f"Error from Gemini: {recommendations['error']}")
-                response = jsonify({
+                return jsonify({
                     "recommendations": {
                         "outdoor_activities": [],
                         "indoor_activities": [],
@@ -674,16 +679,14 @@ def get_recommendations():
                         "considerations": ["Could not generate recommendations at this time."]
                     }
                 })
-                return response
                 
-            response = jsonify({"recommendations": recommendations})
-            return response
+            return jsonify({"recommendations": recommendations})
         except Exception as e:
             print(f"Error calling Gemini: {str(e)}")
             import traceback
             traceback.print_exc()
             # Return empty but valid data structure on error
-            response = jsonify({
+            return jsonify({
                 "recommendations": {
                     "outdoor_activities": [],
                     "indoor_activities": [],
@@ -691,18 +694,16 @@ def get_recommendations():
                     "considerations": ["Could not generate recommendations at this time."]
                 }
             })
-            return response
     except Exception as e:
         print(f"Error in get_recommendations: {str(e)}")
         import traceback
         traceback.print_exc()
         
         # Return an error response
-        response = jsonify({
+        return jsonify({
             "error": "An unexpected error occurred. Please try again later.",
             "details": str(e)
         }), 500
-        return response
 
 # API Endpoint to Get Weather
 @app.route("/get_weather", methods=["POST"])
