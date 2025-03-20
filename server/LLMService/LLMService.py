@@ -94,20 +94,35 @@ def query_gemini(prompt):
     }
     
     try:
-        # Use the right method based on the API version
-        # This is compatible with the older google.generativeai version
-        model = "gemini-pro"  # Using the correct model name
+        # Manual API call to avoid incompatibilities with different versions
+        # of the google.generativeai library
         
-        # Generate content with the older API style
-        response = genai.generate_text(
-            model=model,
-            prompt=prompt,
-            temperature=0.7,
-            max_output_tokens=1024
-        )
-
-        # Get the text response
-        raw_text = response.text
+        # Get available models - uncomment this to debug which models are available
+        # models = genai.list_models()
+        # print(f"Available models: {[model.name for model in models]}")
+        
+        # Let's use a different way to query the API that doesn't rely on specific model names
+        # First, find all models that support text generation
+        models = [m for m in genai.list_models() if 'generateText' in m.supported_generation_methods]
+        
+        if not models:
+            print("No text generation models available")
+            return fallback_data
+            
+        # Use the first available model
+        model = models[0]
+        print(f"Using model: {model.name}")
+        
+        # Generate content
+        generation_config = {
+            "temperature": 0.7,
+            "max_output_tokens": 1024
+        }
+        
+        result = model.generate_text(prompt, generation_config=generation_config)
+        
+        # Extract text from response
+        raw_text = result.text
         print(f'RAW GEMINI RESPONSE: {raw_text[:500]}...')  # Print first 500 chars to avoid huge logs
 
         # Extract JSON from the text - more robust approach
